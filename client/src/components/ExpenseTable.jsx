@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   formatCurrency,
   formatDate,
@@ -21,7 +21,7 @@ export default function ExpenseTable({
   const [localExpenses, setLocalExpenses] = useState(expenses);
 
   // Sync with parent
-  useState(() => {
+  useEffect(() => {
     setLocalExpenses(expenses);
   }, [expenses]);
 
@@ -73,14 +73,13 @@ export default function ExpenseTable({
                     {h}
                   </th>
                 ))}
-              </tr>
+                </tr>
             </thead>
 
             <tbody className="divide-y divide-teal-50">
               {localExpenses.map((expense) => (
-                <>
+                <React.Fragment key={expense._id}>
                   <tr
-                    key={expense._id}
                     onClick={() =>
                       setExpandedRow(
                         expandedRow === expense._id
@@ -169,7 +168,6 @@ export default function ExpenseTable({
                   {/* Expanded row detail */}
                   {expandedRow === expense._id && (
                     <tr
-                      key={`${expense._id}-expanded`}
                       className="bg-teal-50/20"
                     >
                       <td colSpan={7} className="px-6 py-4">
@@ -219,7 +217,7 @@ export default function ExpenseTable({
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>

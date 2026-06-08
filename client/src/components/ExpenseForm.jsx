@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import expenseService from '../services/expenseService';
 import eventService   from '../services/eventService';
+import api            from '../services/api';
 
 const CATEGORIES = [
   'Venue','Catering','Decoration','Entertainment',
@@ -24,6 +25,7 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
   const [events,        setEvents]        = useState([]);
   const [loading,       setLoading]       = useState(false);
   const [error,         setError]         = useState('');
+  const [categorizing,  setCategorizing]  = useState(false);
 
   // Load events for dropdown
   useEffect(() => {
@@ -137,6 +139,33 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
               className="input"
               required
             />
+            {/* AI Categorize */}
+            {description.trim().length > 3 && (
+              <button
+                type="button"
+                disabled={categorizing}
+                onClick={async () => {
+                  setCategorizing(true);
+                  try {
+                    const res = await api.post('/ai/categorize', { description });
+                    setCategory(res.data.data.category);
+                  } catch {
+                    // silently fail
+                  } finally {
+                    setCategorizing(false);
+                  }
+                }}
+                className="mt-1.5 text-xs text-teal font-semibold
+                           hover:underline flex items-center gap-1
+                           disabled:opacity-50 transition-all"
+              >
+                {categorizing ? (
+                  <><span className="spinner w-3 h-3 border-teal" /> Categorizing...</>
+                ) : (
+                  '🤖 Auto-categorize with AI'
+                )}
+              </button>
+            )}
           </div>
 
           {/* Amount + Date */}
