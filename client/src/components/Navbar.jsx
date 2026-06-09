@@ -70,8 +70,11 @@ export default function Navbar() {
               {ROLE_LABELS[user?.role] || user?.role}
             </span>
 
-            {/* Avatar + name */}
-            <div className="flex items-center gap-2">
+            {/* Avatar + name — clickable to profile */}
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <div className="w-8 h-8 rounded-full bg-teal flex items-center
                               justify-center text-cream text-xs font-bold">
                 {getInitials(user?.name)}
@@ -80,7 +83,7 @@ export default function Navbar() {
                                max-w-[120px] truncate">
                 {user?.name}
               </span>
-            </div>
+            </button>
 
             {/* Logout */}
             <button

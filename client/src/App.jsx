@@ -8,6 +8,7 @@ import Dashboard  from './pages/Dashboard';
 import Events     from './pages/Events';
 import Expenses   from './pages/Expenses';
 import NotFound   from './pages/NotFound';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/events"    element={<Events />} />
             <Route path="/expenses"  element={<Expenses />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
 
           {/* Redirects */}
