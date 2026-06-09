@@ -9,6 +9,8 @@ import Events     from './pages/Events';
 import Expenses   from './pages/Expenses';
 import NotFound   from './pages/NotFound';
 import Profile from './pages/Profile';
+import Income  from './pages/Income';
+import Family  from './pages/Family';
 
 export default function App() {
   return (
@@ -25,6 +27,8 @@ export default function App() {
             <Route path="/events"    element={<Events />} />
             <Route path="/expenses"  element={<Expenses />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/income" element={<Income />} />
+            <Route path="/family" element={<Family />} />
           </Route>
 
           {/* Redirects */}

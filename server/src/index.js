@@ -13,6 +13,8 @@ import aiRoutes      from './routes/aiRoutes.js';
 import errorHandler  from './middleware/errorHandler.js';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss           from 'xss-clean';
+import incomeRoutes from './routes/incomeRoutes.js';
+import familyRoutes from './routes/familyRoutes.js';
 
 connectDB();
 
@@ -47,6 +49,8 @@ app.use('/api/auth',     authRoutes);
 app.use('/api/events',   eventRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/ai',       aiRoutes);
+app.use('/api/income', incomeRoutes);
+app.use('/api/family', familyRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
