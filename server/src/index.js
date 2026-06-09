@@ -15,6 +15,7 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss           from 'xss-clean';
 import incomeRoutes from './routes/incomeRoutes.js';
 import familyRoutes from './routes/familyRoutes.js';
+import investmentRoutes from './routes/investmentRoutes.js';
 
 connectDB();
 
@@ -51,6 +52,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/ai',       aiRoutes);
 app.use('/api/income', incomeRoutes);
 app.use('/api/family', familyRoutes);
+app.use('/api/investments', investmentRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

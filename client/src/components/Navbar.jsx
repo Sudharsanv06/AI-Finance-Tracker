@@ -66,6 +66,9 @@ export default function Navbar() {
             <NavLink to="/family" className={navLinkClass}>
               Family
             </NavLink>
+            <NavLink to="/investments" className={navLinkClass}>
+              Investments
+            </NavLink>
           </div>
 
           {/* ── User Info + Logout ───────────────────────────────── */}
@@ -149,6 +152,11 @@ export default function Navbar() {
               className={navLinkClass}
               onClick={() => setMenuOpen(false)}>
               Family
+            </NavLink>
+            <NavLink to="/investments"
+              className={navLinkClass}
+              onClick={() => setMenuOpen(false)}>
+              Investments
             </NavLink>
 
             <div className="divider" />
