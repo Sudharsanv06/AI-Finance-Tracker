@@ -13,6 +13,9 @@ import Income  from './pages/Income';
 import Family  from './pages/Family';
 import Investments from './pages/Investments';
 import Loans from './pages/Loans';
+import BudgetPlanner from './pages/BudgetPlanner';
+import Goals         from './pages/Goals';
+import Bills         from './pages/Bills';
 
 export default function App() {
   return (
@@ -33,6 +36,9 @@ export default function App() {
             <Route path="/family" element={<Family />} />
             <Route path="/investments" element={<Investments />} />
             <Route path="/loans" element={<Loans />} />
+            <Route path="/budget"  element={<BudgetPlanner />} />
+            <Route path="/goals"   element={<Goals />} />
+            <Route path="/bills"   element={<Bills />} />
           </Route>
 
           {/* Redirects */}

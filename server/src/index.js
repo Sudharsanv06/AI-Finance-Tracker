@@ -17,6 +17,9 @@ import incomeRoutes from './routes/incomeRoutes.js';
 import familyRoutes from './routes/familyRoutes.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import loanRoutes from './routes/loanRoutes.js';
+import budgetRoutes from './routes/budgetRoutes.js';
+import goalRoutes   from './routes/goalRoutes.js';
+import billRoutes   from './routes/billRoutes.js';
 
 connectDB();
 
@@ -55,6 +58,9 @@ app.use('/api/income', incomeRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/investments', investmentRoutes);
 app.use('/api/loans', loanRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/goals',   goalRoutes);
+app.use('/api/bills',   billRoutes)
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
