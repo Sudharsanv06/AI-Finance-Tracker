@@ -11,6 +11,8 @@ import eventRoutes   from './routes/eventRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import aiRoutes      from './routes/aiRoutes.js';
 import errorHandler  from './middleware/errorHandler.js';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss           from 'xss-clean';
 
 connectDB();
 
@@ -20,6 +22,10 @@ const PORT = process.env.PORT || 5000;
 // ── Body Parser FIRST ─────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ── Data Sanitization against NoSQL injection & XSS ───────────────────────────
+app.use(mongoSanitize());
+app.use(xss());
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
