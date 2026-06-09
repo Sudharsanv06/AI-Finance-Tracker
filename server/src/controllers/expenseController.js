@@ -7,31 +7,46 @@ export const getExpenses = async (req, res, next) => {
   try {
     let query = {};
 
-    // Filter by eventId if provided
     if (req.query.eventId) {
       query.eventId = req.query.eventId;
     }
-
-    // Filter by status if provided
     if (req.query.status) {
       query.approvalStatus = req.query.status;
     }
-
-    // Organizer sees only their submitted expenses
     if (req.user.role === 'Organizer') {
       query.submittedBy = req.user._id;
     }
+
+    // ── Pagination ──────────────────────────────────────────────
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip  = (page - 1) * limit;
+
+    const total    = await Expense.countDocuments(query);
+    const pages    = Math.ceil(total / limit);
 
     const expenses = await Expense.find(query)
       .populate('eventId',     'name totalBudget spentAmount')
       .populate('submittedBy', 'name email role')
       .populate('approvedBy',  'name email role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.json({
       success: true,
       count:   expenses.length,
-      data:    { expenses },
+      data:    {
+        expenses,
+        pagination: {
+          total,
+          pages,
+          page,
+          limit,
+          hasNext: page < pages,
+          hasPrev: page > 1,
+        },
+      },
     });
   } catch (error) {
     next(error);

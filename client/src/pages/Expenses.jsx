@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation }   from 'react-router-dom';
 import { useAuth }       from '../context/AuthContext';
-import expenseService    from '../services/expenseService';
-import api               from '../services/api'; // axios instance with baseURL and auth
+import api               from '../services/api';
 import ExpenseTable      from '../components/ExpenseTable';
 import ExpenseForm       from '../components/ExpenseForm';
 import EmptyState        from '../components/EmptyState';
+import Pagination        from '../components/Pagination';
 import { formatCurrency } from '../utils/helpers';
 
 const STATUS_FILTERS = ['All','Pending','Approved','Rejected','Paid'];
+const ITEMS_PER_PAGE = 10;
 
 export default function Expenses() {
   const { user }                        = useAuth();
@@ -23,16 +24,23 @@ export default function Expenses() {
   const [showForm,     setShowForm]     = useState(false);
   const [activeFilter, setActiveFilter] = useState(defaultStatus);
   const [search,       setSearch]       = useState('');
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const [pagination,   setPagination]   = useState(null);
 
   const userRole  = user?.role || 'Organizer';
   const canSubmit = userRole === 'Organizer' || userRole === 'FinanceAdmin';
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(async (page = 1) => {
     setLoading(true);
     setError('');
     try {
-      const res = await expenseService.getExpenses(defaultEventId);
-      setExpenses(res.data?.expenses || []);
+      const url = defaultEventId
+        ? `/expenses?eventId=${defaultEventId}&page=${page}&limit=${ITEMS_PER_PAGE}`
+        : `/expenses?page=${page}&limit=${ITEMS_PER_PAGE}`;
+      const res = await api.get(url);
+      setExpenses(res.data.data?.expenses || []);
+      setPagination(res.data.data?.pagination || null);
+      setCurrentPage(page);
     } catch {
       setError('Failed to load expenses');
     } finally {
@@ -40,9 +48,9 @@ export default function Expenses() {
     }
   }, [defaultEventId]);
 
-  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+  useEffect(() => { fetchExpenses(1); }, [fetchExpenses]);
 
-  // Filtered list
+  // Filtered list (frontend filtering on current page)
   const filtered = expenses.filter((e) => {
     const matchStatus = activeFilter === 'All' ||
       e.approvalStatus === activeFilter;
@@ -54,11 +62,16 @@ export default function Expenses() {
     return matchStatus && matchSearch;
   });
 
-  // Stats
+  // Stats (based on current page expenses only)
   const totalAmount   = expenses.reduce((s, e) => s + (e.amount || 0), 0);
   const pendingCount  = expenses.filter((e) => e.approvalStatus === 'Pending').length;
   const approvedCount = expenses.filter((e) => e.approvalStatus === 'Approved').length;
   const paidCount     = expenses.filter((e) => e.approvalStatus === 'Paid').length;
+
+  const handlePageChange = (page) => {
+    fetchExpenses(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="page">
@@ -71,7 +84,7 @@ export default function Expenses() {
             <p className="page-subtitle">
               {loading
                 ? 'Loading...'
-                : `${expenses.length} total expense${expenses.length !== 1 ? 's' : ''}`}
+                : `${pagination?.total || expenses.length} total expense${(pagination?.total || expenses.length) !== 1 ? 's' : ''}`}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -205,11 +218,17 @@ export default function Expenses() {
             }
           />
         ) : (
-          <ExpenseTable
-            expenses={filtered}
-            userRole={userRole}
-            onRefresh={fetchExpenses}
-          />
+          <>
+            <ExpenseTable
+              expenses={filtered}
+              userRole={userRole}
+              onRefresh={() => fetchExpenses(currentPage)}
+            />
+            <Pagination
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </div>
 
@@ -218,7 +237,7 @@ export default function Expenses() {
         <ExpenseForm
           defaultEventId={defaultEventId}
           onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); fetchExpenses(); }}
+          onSaved={() => { setShowForm(false); fetchExpenses(currentPage); }}
         />
       )}
     </div>
