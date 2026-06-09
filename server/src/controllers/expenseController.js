@@ -272,3 +272,56 @@ export const deleteExpense = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc  Export expenses as CSV
+// @route GET /api/expenses/export/csv
+// @access Private
+export const exportExpensesCSV = async (req, res, next) => {
+  try {
+    let query = {};
+    if (req.user.role === 'Organizer') {
+      query.submittedBy = req.user._id;
+    }
+
+    const expenses = await Expense.find(query)
+      .populate('eventId',     'name')
+      .populate('submittedBy', 'name')
+      .sort({ createdAt: -1 });
+
+    // Build CSV manually — no extra package needed
+    const headers = [
+      'Date',
+      'Description',
+      'Event',
+      'Category',
+      'Amount (INR)',
+      'Payment Method',
+      'Status',
+      'Submitted By',
+      'Notes',
+    ].join(',');
+
+    const rows = expenses.map((e) => [
+      e.date ? new Date(e.date).toISOString().split('T')[0] : '',
+      `"${(e.description || '').replace(/"/g, '""')}"`,
+      `"${(e.eventId?.name || '').replace(/"/g, '""')}"`,
+      e.category        || '',
+      e.amount          || 0,
+      e.paymentMethod   || '',
+      e.approvalStatus  || '',
+      `"${(e.submittedBy?.name || '').replace(/"/g, '""')}"`,
+      `"${(e.notes || '').replace(/"/g, '""')}"`,
+    ].join(','));
+
+    const csv = [headers, ...rows].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="eventfi-expenses-${Date.now()}.csv"`
+    );
+    res.status(200).send(csv);
+  } catch (error) {
+    next(error);
+  }
+};

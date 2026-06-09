@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation }   from 'react-router-dom';
 import { useAuth }       from '../context/AuthContext';
 import expenseService    from '../services/expenseService';
+import api               from '../services/api'; // axios instance with baseURL and auth
 import ExpenseTable      from '../components/ExpenseTable';
 import ExpenseForm       from '../components/ExpenseForm';
 import EmptyState        from '../components/EmptyState';
@@ -73,14 +74,40 @@ export default function Expenses() {
                 : `${expenses.length} total expense${expenses.length !== 1 ? 's' : ''}`}
             </p>
           </div>
-          {canSubmit && (
+          <div className="flex items-center gap-3">
+            {/* Export CSV button — uses axios */}
             <button
-              onClick={() => setShowForm(true)}
-              className="btn-primary"
+              onClick={async () => {
+                try {
+                  const res = await api.get('/expenses/export/csv', {
+                    responseType: 'blob',
+                  });
+                  const url  = URL.createObjectURL(new Blob([res.data]));
+                  const a    = document.createElement('a');
+                  a.href     = url;
+                  a.download = 'eventfi-expenses.csv';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch {
+                  alert('Export failed. Please try again.');
+                }
+              }}
+              className="btn-secondary flex items-center gap-2"
             >
-              + Add Expense
+              📥 Export CSV
             </button>
-          )}
+
+            {canSubmit && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="btn-primary"
+              >
+                + Add Expense
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stats row */}
