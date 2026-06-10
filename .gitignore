@@ -22,3 +22,10 @@ Thumbs.db
 
 # Vite cache
 .vite/
+
+# Mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/android/
+mobile/ios/
+mobile/.env

@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "EventFi",
+    "slug": "eventfi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F0EDE5"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F0EDE5"
+      },
+      "package": "com.sudharsan7.eventfi"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "08119862-0412-4fb5-b00d-434c3a157d38"
+      }
+    }
+  }
+}
