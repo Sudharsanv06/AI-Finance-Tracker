@@ -57,29 +57,31 @@ api.interceptors.request.use(async (config) => {
     }
   }
 
-  // Deduplication guard
-  const paramsCopy = { ...config.params };
-  delete paramsCopy._t;
-  const requestKey = `${config.method?.toLowerCase()}:${config.url}:${JSON.stringify(paramsCopy)}:${JSON.stringify(config.data || {})}`;
-  const now = Date.now();
+  // Deduplication guard (GET requests only)
+  if (config.method?.toLowerCase() === 'get') {
+    const paramsCopy = { ...config.params };
+    delete paramsCopy._t;
+    const requestKey = `get:${config.url}:${JSON.stringify(paramsCopy)}`;
+    const now = Date.now();
 
-  if (pendingRequests.has(requestKey)) {
-    const { timestamp } = pendingRequests.get(requestKey);
-    if (now - timestamp < 500) {
-      const controller = new AbortController();
-      config.signal = controller.signal;
-      controller.abort('Duplicate request cancelled');
-      return config;
+    if (pendingRequests.has(requestKey)) {
+      const lastTimestamp = pendingRequests.get(requestKey);
+      if (now - lastTimestamp < 500) {
+        const controller = new AbortController();
+        config.signal = controller.signal;
+        controller.abort('Duplicate request cancelled');
+        return config;
+      }
     }
+
+    pendingRequests.set(requestKey, now);
+
+    setTimeout(() => {
+      if (pendingRequests.get(requestKey) === now) {
+        pendingRequests.delete(requestKey);
+      }
+    }, 500);
   }
-
-  const controller = new AbortController();
-  config.signal = controller.signal;
-  pendingRequests.set(requestKey, { timestamp: now, controller });
-
-  setTimeout(() => {
-    pendingRequests.delete(requestKey);
-  }, 500);
 
   return config;
 });

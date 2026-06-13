@@ -367,7 +367,7 @@ export default function DashboardScreen({ navigation }) {
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>Monthly Budget</Text>
             <TouchableOpacity onPress={() => navigation.navigate('BudgetPlanner')}>
-              <Text style={s.viewAllLink}>View All</Text>
+              <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '600' }}>View All</Text>
             </TouchableOpacity>
           </View>
           {totalBudgetLimit > 0 ? (

@@ -13,7 +13,10 @@ export const getBudgets = async (req, res, next) => {
     }).sort({ category: 1 });
 
     if (!budgets || budgets.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({
+        success: true,
+        data: { budgets: [], totalLimit: 0, totalSpent: 0, alerts: 0, month, year },
+      });
     }
 
     // Calculate dynamic spent for each budget on the fly

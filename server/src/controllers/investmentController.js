@@ -21,7 +21,11 @@ export const getInvestments = async (req, res, next) => {
       .limit(limit);
 
     if (!investments || investments.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: { investments: [], pagination: { total: 0, pages: 0, page: 1, limit: 10, hasNext: false, hasPrev: false } },
+      });
     }
 
     res.json({

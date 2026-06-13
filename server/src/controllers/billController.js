@@ -7,7 +7,15 @@ export const getBills = async (req, res, next) => {
       .sort({ dueDate: 1 });
 
     if (!bills || bills.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({
+        success: true,
+        data: {
+          bills: [],
+          totalMonthly: 0,
+          unpaidThisMonth: 0,
+          upcomingIn7Days: 0,
+        },
+      });
     }
 
     const now          = new Date();

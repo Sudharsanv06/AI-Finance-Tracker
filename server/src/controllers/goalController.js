@@ -10,7 +10,10 @@ export const getGoals = async (req, res, next) => {
     const goals = await Goal.find(query).sort({ createdAt: -1 });
 
     if (!goals || goals.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({
+        success: true,
+        data: { goals: [], totalTarget: 0, totalSaved: 0, completed: 0, monthlyNeeded: 0 },
+      });
     }
 
     const totalTarget  = goals.reduce((s, g) => s + g.targetAmount,  0);

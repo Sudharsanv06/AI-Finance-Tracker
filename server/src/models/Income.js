@@ -4,7 +4,7 @@ const incomeSchema = new mongoose.Schema(
   {
     source: {
       type: String,
-      required: [true, 'Income source is required'],
+      default: 'Other',
     },
     amount: {
       type:     Number,

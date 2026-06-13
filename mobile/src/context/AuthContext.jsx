@@ -27,6 +27,9 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const res = await authService.login(email, password);
     const { token: t, user: u } = res.data;
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {}
     await AsyncStorage.setItem('token', t);
     await AsyncStorage.setItem('user',  JSON.stringify(u));
     setToken(t);
@@ -37,6 +40,9 @@ export function AuthProvider({ children }) {
   const register = async (data) => {
     const res = await authService.register(data);
     const { token: t, user: u } = res.data;
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {}
     await AsyncStorage.setItem('token', t);
     await AsyncStorage.setItem('user',  JSON.stringify(u));
     setToken(t);
