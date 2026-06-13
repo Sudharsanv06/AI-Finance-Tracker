@@ -2,7 +2,8 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, Platform
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import budgetService from '../services/budgetService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -119,9 +120,17 @@ export default function BudgetPlannerScreen({ navigation }) {
     }
   }, [selectedMonth, selectedYear]);
 
-  useEffect(() => {
-    fetchBudgets();
-  }, [fetchBudgets]);
+  const hasFetched = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      fetchBudgets();
+      return () => {
+        hasFetched.current = false;
+      };
+    }, [fetchBudgets])
+  );
 
   const handleOpenModal = (budget = null) => {
     if (budget) {

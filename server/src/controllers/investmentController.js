@@ -20,6 +20,10 @@ export const getInvestments = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
+    if (!investments || investments.length === 0) {
+      return res.status(200).json([]);
+    }
+
     res.json({
       success: true,
       count:   investments.length,

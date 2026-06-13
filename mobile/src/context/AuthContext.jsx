@@ -45,8 +45,12 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+    }
     setToken(null);
     setUser(null);
   };

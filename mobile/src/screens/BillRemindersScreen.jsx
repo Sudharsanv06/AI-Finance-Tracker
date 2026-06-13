@@ -2,7 +2,8 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, Switch, Platform
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import billService from '../services/billService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -63,9 +64,17 @@ export default function BillRemindersScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchBills();
-  }, [fetchBills]);
+  const hasFetched = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      fetchBills();
+      return () => {
+        hasFetched.current = false;
+      };
+    }, [fetchBills])
+  );
 
   const handleOpenModal = (bill = null) => {
     if (bill) {

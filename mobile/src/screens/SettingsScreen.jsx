@@ -24,6 +24,7 @@ export default function SettingsScreen({ navigation }) {
 
   // Save Profile Details Handler
   const handleSaveProfile = async () => {
+    if (profileLoading) return;
     if (!name.trim()) {
       return Alert.alert('Validation Error', 'Name cannot be empty.');
     }
@@ -43,7 +44,7 @@ export default function SettingsScreen({ navigation }) {
       });
       if (res.data?.success) {
         // Update user state in context
-        await updateUser(res.data.data.user);
+        await updateUser({ ...user, name: name.trim(), email: email.trim().toLowerCase() });
         Alert.alert('Success', 'Profile details updated successfully.');
       } else {
         Alert.alert('Error', res.data?.message || 'Failed to update profile.');

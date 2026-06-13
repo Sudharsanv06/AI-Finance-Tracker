@@ -73,7 +73,7 @@ export const createExpense = async (req, res, next) => {
       });
     }
 
-    const cleanEventId = (eventId && eventId !== 'null' && eventId !== '') ? eventId : null;
+    const cleanEventId = (eventId && eventId !== 'null' && eventId !== 'undefined' && eventId !== '') ? eventId : null;
 
     // Verify event exists if eventId is provided
     if (cleanEventId) {

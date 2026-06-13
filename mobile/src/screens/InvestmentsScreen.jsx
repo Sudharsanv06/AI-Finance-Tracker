@@ -2,7 +2,8 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import investmentService from '../services/investmentService';
 import { formatCurrency, formatDate, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -73,9 +74,17 @@ export default function InvestmentsScreen({ navigation }) {
     }
   }, [filterType, filterStatus]);
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  const hasFetched = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      fetchAll();
+      return () => {
+        hasFetched.current = false;
+      };
+    }, [fetchAll])
+  );
 
   const handleOpenModal = (inv = null) => {
     if (inv) {

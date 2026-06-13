@@ -3,7 +3,8 @@ import {
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
   ScrollView,
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import * as loanService from '../services/loanService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -211,7 +212,17 @@ export default function LoansScreen({ navigation }) {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  const hasFetched = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      fetchAll();
+      return () => {
+        hasFetched.current = false;
+      };
+    }, [fetchAll])
+  );
 
   const handleRepaymentSubmit = async (loan, amount) => {
     try {

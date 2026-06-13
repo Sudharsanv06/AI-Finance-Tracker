@@ -21,6 +21,8 @@ import budgetRoutes from './routes/budgetRoutes.js';
 import goalRoutes   from './routes/goalRoutes.js';
 import billRoutes   from './routes/billRoutes.js';
 
+import { protect }     from './middleware/authMiddleware.js';
+
 connectDB();
 
 const app  = express();
@@ -42,12 +44,38 @@ app.use(cors({
 }));
 
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max:      10000,
+const authRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max:      500,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
   message:  { success: false, message: 'Too many requests, please try again later' },
 });
-app.use('/api', limiter);
+
+const publicRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max:      20,
+  message:  { success: false, message: 'Too many requests, please try again later' },
+});
+
+// Apply rate limiter to public endpoints
+app.use('/api/auth/login', publicRateLimiter);
+app.use('/api/auth/register', publicRateLimiter);
+
+// Authenticate and rate limit other /api routes
+app.use('/api', (req, res, next) => {
+  const path = req.originalUrl.split('?')[0];
+  if (
+    path === '/api/auth/login' ||
+    path === '/api/auth/register' ||
+    path === '/api/health'
+  ) {
+    return next();
+  }
+  protect(req, res, (err) => {
+    if (err) return next(err);
+    authRateLimiter(req, res, next);
+  });
+});
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',     authRoutes);

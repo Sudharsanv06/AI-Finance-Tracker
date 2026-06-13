@@ -9,6 +9,10 @@ export const getGoals = async (req, res, next) => {
 
     const goals = await Goal.find(query).sort({ createdAt: -1 });
 
+    if (!goals || goals.length === 0) {
+      return res.status(200).json([]);
+    }
+
     const totalTarget  = goals.reduce((s, g) => s + g.targetAmount,  0);
     const totalSaved   = goals.reduce((s, g) => s + g.currentAmount, 0);
     const completed    = goals.filter((g) => g.status === 'completed').length;

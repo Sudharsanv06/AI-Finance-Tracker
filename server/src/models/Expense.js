@@ -15,16 +15,6 @@ const expenseSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: [
-        'Food & Dining', 'Transportation', 'Shopping',
-        'Entertainment', 'Health', 'Education',
-        'Utilities', 'Rent', 'Groceries',
-        'Travel', 'Personal Care', 'Other', 'other', 'others',
-        'Venue', 'Catering', 'Decoration',
-        'Marketing', 'Equipment', 'Staff', 'Others', 'others',
-        'Bank Transfer', 'Self Transfer', 'Mobile Wallet',
-        'Cash Withdrawal', 'Card to Card'
-      ],
       default: 'Other',
     },
     paymentMethod: {

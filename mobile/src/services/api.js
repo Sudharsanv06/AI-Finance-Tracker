@@ -7,6 +7,8 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const pendingRequests = new Map();
+
 // Attach token and disable HTTP caching for GET requests on mobile
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('token');
@@ -54,13 +56,41 @@ api.interceptors.request.use(async (config) => {
       config.params._uid = userId;
     }
   }
+
+  // Deduplication guard
+  const paramsCopy = { ...config.params };
+  delete paramsCopy._t;
+  const requestKey = `${config.method?.toLowerCase()}:${config.url}:${JSON.stringify(paramsCopy)}:${JSON.stringify(config.data || {})}`;
+  const now = Date.now();
+
+  if (pendingRequests.has(requestKey)) {
+    const { timestamp } = pendingRequests.get(requestKey);
+    if (now - timestamp < 500) {
+      const controller = new AbortController();
+      config.signal = controller.signal;
+      controller.abort('Duplicate request cancelled');
+      return config;
+    }
+  }
+
+  const controller = new AbortController();
+  config.signal = controller.signal;
+  pendingRequests.set(requestKey, { timestamp: now, controller });
+
+  setTimeout(() => {
+    pendingRequests.delete(requestKey);
+  }, 500);
+
   return config;
 });
 
-// Handle 401
+// Handle 401 & Cancel
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
+    if (axios.isCancel(error)) {
+      return new Promise(() => {});
+    }
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');

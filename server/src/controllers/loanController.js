@@ -29,6 +29,10 @@ export const getLoans = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
+    if (!loans || loans.length === 0) {
+      return res.status(200).json([]);
+    }
+
     res.json({
       success: true,
       count:   loans.length,

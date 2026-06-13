@@ -3,7 +3,8 @@ import {
   TouchableOpacity, Modal, TextInput,
   ActivityIndicator, Alert, RefreshControl, SafeAreaView, ScrollView
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth }  from '../context/AuthContext';
 import api          from '../services/api';
 import { formatCurrency, formatDate, COLORS } from '../utils/helpers';
@@ -362,7 +363,17 @@ export default function EventsScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  const hasFetched = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      fetchEvents();
+      return () => {
+        hasFetched.current = false;
+      };
+    }, [fetchEvents])
+  );
 
   const handleEdit = (event) => {
     setEditingEvent(event);

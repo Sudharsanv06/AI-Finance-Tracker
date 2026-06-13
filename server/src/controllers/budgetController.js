@@ -12,6 +12,10 @@ export const getBudgets = async (req, res, next) => {
       userId: req.user._id, month, year,
     }).sort({ category: 1 });
 
+    if (!budgets || budgets.length === 0) {
+      return res.status(200).json([]);
+    }
+
     // Calculate dynamic spent for each budget on the fly
     for (let budget of budgets) {
       const start = new Date(year, month - 1, 1);

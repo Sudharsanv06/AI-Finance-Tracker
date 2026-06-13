@@ -3,7 +3,8 @@ import {
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
   ScrollView, Platform
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import * as goalService from '../services/goalService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -174,7 +175,17 @@ export default function GoalsScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => { fetchGoals(); }, [fetchGoals]);
+  const hasFetched = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      fetchGoals();
+      return () => {
+        hasFetched.current = false;
+      };
+    }, [fetchGoals])
+  );
 
   const handleContributeSubmit = async (goal, amount) => {
     try {

@@ -6,6 +6,10 @@ export const getBills = async (req, res, next) => {
     const bills = await Bill.find({ userId: req.user._id })
       .sort({ dueDate: 1 });
 
+    if (!bills || bills.length === 0) {
+      return res.status(200).json([]);
+    }
+
     const now          = new Date();
     const totalMonthly = bills
       .filter((b) => b.frequency === 'monthly')

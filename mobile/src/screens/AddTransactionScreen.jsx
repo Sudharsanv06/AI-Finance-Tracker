@@ -247,13 +247,17 @@ export default function AddTransactionScreen({ navigation, route }) {
         [{ text: 'OK' }]
       );
     }
+    
+    if (!description || !description.trim()) {
+      return Alert.alert('Error', 'Description is required');
+    }
+
     const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount <= 0) {
-      return Alert.alert('Error', 'Please enter a valid amount');
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return Alert.alert('Error', 'Valid amount is required');
     }
-    if (!description.trim()) {
-      return Alert.alert('Error', 'Please enter a description');
-    }
+
+    const finalEventId = selectedEventId && selectedEventId !== '' ? selectedEventId : null;
 
     setLoading(true);
     try {
@@ -272,7 +276,7 @@ export default function AddTransactionScreen({ navigation, route }) {
           paymentMethod: 'Cash',
           date: selectedDate.toISOString(),
           approvalStatus: status === 'Paid' ? 'Paid' : 'Pending',
-          eventId: selectedEventId || null
+          eventId: finalEventId
         });
       } else {
         // Transfer
@@ -283,7 +287,7 @@ export default function AddTransactionScreen({ navigation, route }) {
           paymentMethod: 'Bank Transfer',
           date: selectedDate.toISOString(),
           approvalStatus: status === 'Paid' ? 'Paid' : 'Pending',
-          eventId: selectedEventId || null
+          eventId: finalEventId
         });
       }
       Alert.alert('Success', 'Transaction saved successfully!', [
