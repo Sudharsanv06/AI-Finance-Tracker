@@ -8,7 +8,7 @@ const budgetSchema = new mongoose.Schema(
         'Food & Dining', 'Transportation', 'Shopping',
         'Entertainment', 'Health', 'Education',
         'Utilities', 'Rent', 'Groceries',
-        'Travel', 'Personal Care', 'Other',
+        'Travel', 'Personal Care', 'Other', 'other', 'others', 'Others'
       ],
       required: [true, 'Category is required'],
     },

@@ -16,17 +16,16 @@ const expenseSchema = new mongoose.Schema(
     category: {
       type: String,
       enum: [
-        'Venue',
-        'Catering',
-        'Decoration',
-        'Entertainment',
-        'Marketing',
-        'Equipment',
-        'Staff',
-        'Transportation',
-        'Others',
+        'Food & Dining', 'Transportation', 'Shopping',
+        'Entertainment', 'Health', 'Education',
+        'Utilities', 'Rent', 'Groceries',
+        'Travel', 'Personal Care', 'Other', 'other', 'others',
+        'Venue', 'Catering', 'Decoration',
+        'Marketing', 'Equipment', 'Staff', 'Others', 'others',
+        'Bank Transfer', 'Self Transfer', 'Mobile Wallet',
+        'Cash Withdrawal', 'Card to Card'
       ],
-      default: 'Others',
+      default: 'Other',
     },
     paymentMethod: {
       type:    String,
@@ -45,7 +44,7 @@ const expenseSchema = new mongoose.Schema(
     eventId: {
       type:     mongoose.Schema.Types.ObjectId,
       ref:      'Event',
-      required: [true, 'Event is required'],
+      default:  null,
     },
     submittedBy: {
       type:     mongoose.Schema.Types.ObjectId,

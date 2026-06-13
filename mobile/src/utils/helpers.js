@@ -18,19 +18,36 @@ export const getInitials = (name) => {
 };
 
 export const COLORS = {
-  teal:       '#004643',
-  tealLight:  '#1a706b',
-  teal50:     '#E6F0EF',
-  teal100:    '#B3D0CE',
-  cream:      '#F0EDE5',
-  creamDark:  '#E5E0D5',
-  white:      '#FFFFFF',
-  red:        '#dc2626',
-  red50:      '#fef2f2',
-  green:      '#16a34a',
-  green50:    '#f0fdf4',
-  amber:      '#d97706',
-  amber50:    '#fffbeb',
-  gray:       '#6b7280',
-  gray100:    '#f3f4f6',
+  // Legacy mappings mapped to new design system colors
+  teal:       '#0058be', // Primary Vibrant Blue
+  tealLight:  '#2170e4', // Primary Container Blue
+  teal50:     '#eff4ff', // Surface Container Low
+  teal100:    '#d3e4fe', // Surface Container Highest
+  cream:      '#f8f9ff', // Base Canvas background
+  creamDark:  '#e5eeff', // Surface Container
+  white:      '#ffffff', // Surface Container Lowest
+  red:        '#ba1a1a', // Error red
+  red50:      '#ffdad6', // Error container
+  green:      '#006c49', // Secondary emerald green
+  green50:    '#6cf8bb', // Secondary container
+  amber:      '#825100', // Tertiary amber
+  amber50:    '#ffddb8', // Tertiary container
+  gray:       '#727785', // Outline
+  gray100:    '#c2c6d6', // Outline variant
+
+  // New design system semantic tokens
+  primary: '#0058be',
+  primaryContainer: '#2170e4',
+  secondary: '#006c49',
+  secondaryContainer: '#6cf8bb',
+  tertiary: '#825100',
+  tertiaryContainer: '#a36700',
+  background: '#f8f9ff',
+  onSurface: '#0b1c30',
+  onSurfaceVariant: '#424754',
+  outline: '#727785',
+  outlineVariant: '#c2c6d6',
+  surfaceVariant: '#d3e4fe',
+  surfaceContainerLow: '#eff4ff',
+  surfaceContainerLowest: '#ffffff',
 };

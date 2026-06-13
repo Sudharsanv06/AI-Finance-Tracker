@@ -131,7 +131,7 @@ export const getMe = async (req, res, next) => {
 // PUT /api/auth/profile
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name } = req.body;
+    const { name, email } = req.body;
 
     if (!name?.trim()) {
       return res.status(400).json({
@@ -140,9 +140,24 @@ export const updateProfile = async (req, res, next) => {
       });
     }
 
+    const updateFields = { name: name.trim() };
+    if (email) {
+      const emailLower = email.toLowerCase().trim();
+      if (emailLower !== req.user.email) {
+        const existing = await User.findOne({ email: emailLower });
+        if (existing) {
+          return res.status(400).json({
+            success: false,
+            message: 'Email is already taken',
+          });
+        }
+        updateFields.email = emailLower;
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name: name.trim() },
+      updateFields,
       { new: true, runValidators: true }
     );
 

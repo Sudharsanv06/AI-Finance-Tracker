@@ -7,10 +7,9 @@ import { COLORS, getInitials } from '../utils/helpers';
 
 const MENU_ITEMS = [
   { icon: '🎯', label: 'Financial Goals', screen: 'Goals' },
-  { icon: '📊', label: 'Budget Planner',  link: 'Web only' },
-  { icon: '💳', label: 'Bill Reminders',  link: 'Web only' },
-  { icon: '📈', label: 'Investments',      link: 'Web only' },
-  { icon: '👨‍👩‍👧‍👦', label: 'Family Members',  link: 'Web only' },
+  { icon: '📊', label: 'Budget Planner',  screen: 'BudgetPlanner' },
+  { icon: '💳', label: 'Bill Reminders',  screen: 'BillReminders' },
+  { icon: '📈', label: 'Investments',      screen: 'Investments' },
 ];
 
 const ROLE_CONFIG = {
@@ -45,23 +44,16 @@ export default function ProfileScreen({ navigation }) {
         </View>
         <Text style={s.name}>{user?.name}</Text>
         <Text style={s.email}>{user?.email}</Text>
-        <View style={[s.roleBadge, { backgroundColor: rc.bg }]}>
-          <Text style={[s.roleText, { color: rc.color }]}>{rc.label}</Text>
-        </View>
       </View>
 
       {/* App info */}
       <View style={s.infoCard}>
-        <Text style={s.infoTitle}>EventFi V2</Text>
+        <Text style={s.infoTitle}>AI Finance Tracker v1.00</Text>
         <Text style={s.infoSub}>Smart Finance Manager</Text>
         <View style={s.infoDivider} />
         <View style={s.infoRow}>
           <Text style={s.infoLabel}>Backend</Text>
-          <Text style={s.infoValue}>Render (Free)</Text>
-        </View>
-        <View style={s.infoRow}>
-          <Text style={s.infoLabel}>Frontend</Text>
-          <Text style={s.infoValue}>Vercel</Text>
+          <Text style={s.infoValue}>Node / Express / MongoDB</Text>
         </View>
         <View style={s.infoRow}>
           <Text style={s.infoLabel}>Mobile</Text>
@@ -80,7 +72,7 @@ export default function ProfileScreen({ navigation }) {
               if (item.screen) {
                 navigation.navigate(item.screen);
               } else {
-                Alert.alert('Web App', `${item.label} is available on the web app at your Vercel URL.`);
+                Alert.alert('Web App', `${item.label} is available on the web app.`);
               }
             }}
           >
@@ -101,57 +93,80 @@ export default function ProfileScreen({ navigation }) {
         <Text style={s.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      <Text style={s.version}>EventFi V2 • Built with React Native + Expo</Text>
+      <Text style={s.version}>AI Finance Tracker v1.00 • Built with React Native + Expo</Text>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.cream },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content:   { padding: 16, paddingTop: 56, paddingBottom: 40 },
   profileCard: {
-    backgroundColor: COLORS.teal, borderRadius: 20, padding: 24,
-    alignItems: 'center', marginBottom: 16,
+    backgroundColor: '#0058be', // EventFi Core primary
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   avatar: {
-    width: 72, height: 72, borderRadius: 36,
+    width: 76, height: 76, borderRadius: 38,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)',
   },
-  avatarText: { fontSize: 28, fontWeight: '800', color: COLORS.cream },
-  name:   { fontSize: 20, fontWeight: '800', color: COLORS.cream, marginBottom: 4 },
-  email:  { fontSize: 13, color: 'rgba(240,237,229,0.7)', marginBottom: 10 },
-  roleBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  roleText:  { fontSize: 12, fontWeight: '700' },
+  avatarText: { fontSize: 28, fontWeight: '800', color: COLORS.white },
+  name:   { fontSize: 22, fontWeight: '700', color: COLORS.white, marginBottom: 4 },
+  email:  { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 12 },
+  roleBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)' },
+  roleText:  { fontSize: 12, fontWeight: '700', color: COLORS.white },
   infoCard: {
     backgroundColor: COLORS.white, borderRadius: 16, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: COLORS.teal100,
+    marginBottom: 16, borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  infoTitle: { fontSize: 16, fontWeight: '800', color: COLORS.teal },
-  infoSub:   { fontSize: 12, color: COLORS.gray, marginTop: 2, marginBottom: 12 },
-  infoDivider: { height: 1, backgroundColor: COLORS.teal50, marginBottom: 12 },
+  infoTitle: { fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
+  infoSub:   { fontSize: 12, color: COLORS.onSurfaceVariant, marginTop: 2, marginBottom: 12 },
+  infoDivider: { height: 1, backgroundColor: 'rgba(194, 198, 214, 0.1)', marginBottom: 12 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  infoLabel: { fontSize: 12, color: COLORS.gray },
-  infoValue: { fontSize: 12, fontWeight: '700', color: COLORS.teal },
+  infoLabel: { fontSize: 12, color: COLORS.onSurfaceVariant },
+  infoValue: { fontSize: 12, fontWeight: '700', color: COLORS.onSurface },
   menuCard: {
     backgroundColor: COLORS.white, borderRadius: 16, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: COLORS.teal100,
+    marginBottom: 16, borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  menuTitle: { fontSize: 14, fontWeight: '800', color: COLORS.teal, marginBottom: 12 },
+  menuTitle: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginBottom: 12 },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: COLORS.teal50,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(194, 198, 214, 0.1)',
   },
   menuIcon:  { fontSize: 20, marginRight: 12 },
-  menuLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.teal },
+  menuLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
   menuRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  menuLink:  { fontSize: 10, color: COLORS.gray, fontStyle: 'italic' },
-  menuArrow: { fontSize: 20, color: COLORS.teal100 },
+  menuLink:  { fontSize: 10, color: COLORS.onSurfaceVariant, fontStyle: 'italic' },
+  menuArrow: { fontSize: 20, color: COLORS.outlineVariant },
   logoutBtn: {
-    backgroundColor: '#fef2f2', borderWidth: 1.5, borderColor: '#fecaca',
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 20,
+    backgroundColor: COLORS.red50,
+    borderRadius: 8, paddingVertical: 16, alignItems: 'center', marginBottom: 20,
+    shadowColor: COLORS.red,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   logoutText: { color: COLORS.red, fontSize: 15, fontWeight: '700' },
-  version: { textAlign: 'center', fontSize: 11, color: COLORS.gray },
+  version: { textAlign: 'center', fontSize: 11, color: COLORS.onSurfaceVariant },
 });

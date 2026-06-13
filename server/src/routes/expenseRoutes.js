@@ -2,11 +2,12 @@ import express from 'express';
 import {
   getExpenses,
   createExpense,
+  updateExpense,
   approveExpense,
   rejectExpense,
   markAsPaid,
   deleteExpense,
-  exportExpensesCSV,   // ← ADD
+  exportExpensesCSV,
 } from '../controllers/expenseController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -14,7 +15,7 @@ const router = express.Router();
 
 router.route('/')
   .get(protect, getExpenses)
-  .post(protect, authorize('Organizer', 'FinanceAdmin'), createExpense);
+  .post(protect, createExpense);
 
 router.get('/export/csv', protect, exportExpensesCSV);
 
@@ -36,9 +37,13 @@ router.put('/:id/pay',
   markAsPaid
 );
 
+router.put('/:id',
+  protect,
+  updateExpense
+);
+
 router.delete('/:id',
   protect,
-  authorize('Organizer', 'FinanceAdmin'),
   deleteExpense
 );
 

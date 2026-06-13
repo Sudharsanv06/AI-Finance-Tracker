@@ -1,4 +1,5 @@
 import Budget from '../models/Budget.js';
+import Expense from '../models/Expense.js';
 
 // ── Get Budgets ───────────────────────────────────────────────────────────────
 export const getBudgets = async (req, res, next) => {
@@ -10,6 +11,26 @@ export const getBudgets = async (req, res, next) => {
     const budgets = await Budget.find({
       userId: req.user._id, month, year,
     }).sort({ category: 1 });
+
+    // Calculate dynamic spent for each budget on the fly
+    for (let budget of budgets) {
+      const start = new Date(year, month - 1, 1);
+      const end   = new Date(year, month, 0, 23, 59, 59);
+
+      const expenses = await Expense.find({
+        submittedBy: req.user._id,
+        category:    budget.category,
+        date:        { $gte: start, $lte: end },
+        approvalStatus: { $ne: 'Rejected' },
+      });
+
+      const spentSum = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+      if (budget.spent !== spentSum) {
+        budget.spent = spentSum;
+        await budget.save();
+      }
+    }
 
     const totalLimit = budgets.reduce((s, b) => s + b.monthlyLimit, 0);
     const totalSpent = budgets.reduce((s, b) => s + (b.spent || 0), 0);

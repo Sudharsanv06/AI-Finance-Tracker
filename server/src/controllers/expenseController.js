@@ -13,9 +13,7 @@ export const getExpenses = async (req, res, next) => {
     if (req.query.status) {
       query.approvalStatus = req.query.status;
     }
-    if (req.user.role === 'Organizer') {
-      query.submittedBy = req.user._id;
-    }
+    query.submittedBy = req.user._id;
 
     // ── Pagination ──────────────────────────────────────────────
     const page  = parseInt(req.query.page)  || 1;
@@ -65,22 +63,27 @@ export const createExpense = async (req, res, next) => {
       date,
       eventId,
       notes,
+      approvalStatus,
     } = req.body;
 
-    if (!description || !amount || !eventId) {
+    if (!description || !amount) {
       return res.status(400).json({
         success: false,
-        message: 'Description, amount and event are required',
+        message: 'Description and amount are required',
       });
     }
 
-    // Verify event exists
-    const event = await Event.findById(eventId);
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: 'Event not found',
-      });
+    const cleanEventId = (eventId && eventId !== 'null' && eventId !== '') ? eventId : null;
+
+    // Verify event exists if eventId is provided
+    if (cleanEventId) {
+      const event = await Event.findById(cleanEventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found',
+        });
+      }
     }
 
     const expense = await Expense.create({
@@ -89,10 +92,18 @@ export const createExpense = async (req, res, next) => {
       category,
       paymentMethod,
       date:        date || Date.now(),
-      eventId,
+      eventId:     cleanEventId,
       notes,
+      approvalStatus: cleanEventId ? (approvalStatus || 'Pending') : (approvalStatus || 'Approved'),
       submittedBy: req.user._id,
     });
+
+    // If already approved or paid, increment event spentAmount if eventId is set
+    if (expense.eventId && (expense.approvalStatus === 'Approved' || expense.approvalStatus === 'Paid')) {
+      await Event.findByIdAndUpdate(expense.eventId, {
+        $inc: { spentAmount: expense.amount },
+      });
+    }
 
     await expense.populate([
       { path: 'eventId',     select: 'name totalBudget spentAmount' },
@@ -103,6 +114,96 @@ export const createExpense = async (req, res, next) => {
       success: true,
       message: 'Expense submitted successfully',
       data:    { expense },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Update Expense ────────────────────────────────────────────────────────────
+// PUT /api/expenses/:id
+export const updateExpense = async (req, res, next) => {
+  try {
+    const expense = await Expense.findById(req.params.id);
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: 'Expense not found',
+      });
+    }
+
+    if (expense.submittedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this expense',
+      });
+    }
+
+    // Save values for updating event spentAmount
+    const oldAmount = expense.amount;
+    const oldStatus = expense.approvalStatus;
+    const oldEventId = expense.eventId;
+
+    const {
+      description,
+      amount,
+      category,
+      paymentMethod,
+      date,
+      eventId,
+      notes,
+      approvalStatus,
+    } = req.body;
+
+    if (description) expense.description = description;
+    if (amount !== undefined) expense.amount = amount;
+    if (category) expense.category = category;
+    if (paymentMethod) expense.paymentMethod = paymentMethod;
+    if (date) expense.date = date;
+    if (notes !== undefined) expense.notes = notes;
+    if (approvalStatus) expense.approvalStatus = approvalStatus;
+
+    if (eventId !== undefined) {
+      const cleanEventId = (eventId && eventId !== 'null' && eventId !== '') ? eventId : null;
+      expense.eventId = cleanEventId;
+    }
+
+    // Verify event exists if provided
+    if (expense.eventId) {
+      const event = await Event.findById(expense.eventId);
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found',
+        });
+      }
+    }
+
+    await expense.save();
+
+    // Adjust spentAmount on the event if eventId exists
+    // Deduct old amount from old event if it was Approved or Paid
+    if (oldEventId && (oldStatus === 'Approved' || oldStatus === 'Paid')) {
+      await Event.findByIdAndUpdate(oldEventId, {
+        $inc: { spentAmount: -oldAmount },
+      });
+    }
+    // Add new amount to new event if new status is Approved or Paid
+    if (expense.eventId && (expense.approvalStatus === 'Approved' || expense.approvalStatus === 'Paid')) {
+      await Event.findByIdAndUpdate(expense.eventId, {
+        $inc: { spentAmount: expense.amount },
+      });
+    }
+
+    await expense.populate([
+      { path: 'eventId',     select: 'name totalBudget spentAmount' },
+      { path: 'submittedBy', select: 'name email role' },
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Expense updated successfully',
+      data: { expense },
     });
   } catch (error) {
     next(error);
@@ -256,21 +357,19 @@ export const deleteExpense = async (req, res, next) => {
       });
     }
 
-    // Only submitter or FinanceAdmin can delete
-    if (
-      req.user.role === 'Organizer' &&
-      expense.submittedBy.toString() !== req.user._id.toString()
-    ) {
+    // Only submitter can delete
+    if (expense.submittedBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this expense',
       });
     }
 
-    // If approved/paid, deduct from event spentAmount
+    // If approved/paid, deduct from event spentAmount if eventId is set
     if (
-      expense.approvalStatus === 'Approved' ||
-      expense.approvalStatus === 'Paid'
+      expense.eventId &&
+      (expense.approvalStatus === 'Approved' ||
+      expense.approvalStatus === 'Paid')
     ) {
       await Event.findByIdAndUpdate(expense.eventId, {
         $inc: { spentAmount: -expense.amount },
@@ -293,10 +392,7 @@ export const deleteExpense = async (req, res, next) => {
 // @access Private
 export const exportExpensesCSV = async (req, res, next) => {
   try {
-    let query = {};
-    if (req.user.role === 'Organizer') {
-      query.submittedBy = req.user._id;
-    }
+    let query = { submittedBy: req.user._id };
 
     const expenses = await Expense.find(query)
       .populate('eventId',     'name')

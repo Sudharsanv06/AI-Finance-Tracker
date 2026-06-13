@@ -24,3 +24,8 @@ export const deleteExpense = async (id) => {
   const res = await api.delete(`/expenses/${id}`);
   return res.data;
 };
+
+export const updateExpense = async (id, data) => {
+  const res = await api.put(`/expenses/${id}`, data);
+  return res.data;
+};

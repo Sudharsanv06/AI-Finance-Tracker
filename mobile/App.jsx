@@ -11,7 +11,7 @@ export default function App() {
         <NavigationContainer>
           <AppNavigator />
         </NavigationContainer>
-        <StatusBar style="dark" backgroundColor="#F0EDE5" />
+        <StatusBar style="dark" backgroundColor="#f8f9ff" />
       </AuthProvider>
     </SafeAreaProvider>
   );

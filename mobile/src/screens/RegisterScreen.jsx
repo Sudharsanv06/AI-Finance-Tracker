@@ -18,7 +18,7 @@ export default function RegisterScreen({ navigation }) {
   const [email,           setEmail]           = useState('');
   const [password,        setPassword]        = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role,            setRole]            = useState('Organizer');
+  const [role,            setRole]            = useState('FinanceAdmin');
   const [loading,         setLoading]         = useState(false);
 
   const handleRegister = async () => {
@@ -67,23 +67,6 @@ export default function RegisterScreen({ navigation }) {
           placeholder="you@example.com" placeholderTextColor={COLORS.teal100}
           keyboardType="email-address" autoCapitalize="none" />
 
-        <Text style={s.label}>YOUR ROLE</Text>
-        <View style={s.roleRow}>
-          {ROLES.map((r) => (
-            <TouchableOpacity
-              key={r.val}
-              onPress={() => setRole(r.val)}
-              style={[s.roleCard, role === r.val && s.roleCardActive]}
-              activeOpacity={0.8}
-            >
-              <Text style={s.roleIcon}>{r.icon}</Text>
-              <Text style={[s.roleLabel, role === r.val && s.roleLabelActive]}>
-                {r.label}
-              </Text>
-              <Text style={s.roleDesc}>{r.desc}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <Text style={s.label}>PASSWORD</Text>
         <TextInput style={s.input} value={password} onChangeText={setPassword}
@@ -126,57 +109,57 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.cream },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content:   { flexGrow: 1, padding: 20, paddingTop: 60 },
   logoWrap:  { alignItems: 'center', marginBottom: 24 },
   logoCircle:{
-    width: 56, height: 56, borderRadius: 18,
-    backgroundColor: COLORS.teal,
+    width: 56, height: 56, borderRadius: 16,
+    backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
-  logoText: { color: COLORS.cream, fontSize: 24, fontWeight: '800' },
-  appName:  { fontSize: 24, fontWeight: '800', color: COLORS.teal },
+  logoText: { color: COLORS.white, fontSize: 24, fontWeight: '800' },
+  appName:  { fontSize: 24, fontWeight: '700', color: COLORS.onSurface },
   card: {
-    backgroundColor: COLORS.white, borderRadius: 24, padding: 24,
-    shadowColor: COLORS.teal,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12, shadowRadius: 16, elevation: 4,
-    borderWidth: 1, borderColor: COLORS.teal100,
+    backgroundColor: COLORS.white, borderRadius: 16, padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.03, shadowRadius: 16, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)',
   },
-  title:    { fontSize: 20, fontWeight: '800', color: COLORS.teal, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: COLORS.gray, marginBottom: 20 },
+  title:    { fontSize: 20, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4 },
+  subtitle: { fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 20 },
   label: {
-    fontSize: 10, fontWeight: '700', color: COLORS.tealLight,
-    letterSpacing: 1, marginBottom: 6, marginTop: 14,
+    fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant,
+    letterSpacing: 0.5, marginBottom: 6, marginTop: 14,
   },
   input: {
-    borderWidth: 1.5, borderColor: COLORS.teal100,
-    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 14, color: COLORS.teal, backgroundColor: COLORS.white,
+    borderWidth: 1, borderColor: COLORS.outlineVariant,
+    borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 14, color: COLORS.onSurface, backgroundColor: COLORS.background,
   },
   roleRow: { flexDirection: 'row', gap: 8 },
   roleCard: {
-    flex: 1, borderWidth: 2, borderColor: COLORS.teal100,
-    borderRadius: 14, padding: 10, alignItems: 'center',
+    flex: 1, borderWidth: 1, borderColor: COLORS.outlineVariant,
+    borderRadius: 8, padding: 10, alignItems: 'center',
     backgroundColor: COLORS.white,
   },
   roleCardActive: {
-    borderColor: COLORS.teal, backgroundColor: COLORS.teal50,
+    borderColor: COLORS.primary, backgroundColor: COLORS.surfaceContainerLow,
   },
   roleIcon:  { fontSize: 22, marginBottom: 4 },
-  roleLabel: { fontSize: 10, fontWeight: '700', color: COLORS.gray, textAlign: 'center' },
-  roleLabelActive: { color: COLORS.teal },
-  roleDesc:  { fontSize: 9, color: COLORS.gray, textAlign: 'center', marginTop: 2 },
+  roleLabel: { fontSize: 10, fontWeight: '700', color: COLORS.onSurfaceVariant, textAlign: 'center' },
+  roleLabelActive: { color: COLORS.primary },
+  roleDesc:  { fontSize: 9, color: COLORS.onSurfaceVariant, textAlign: 'center', marginTop: 2 },
   btn: {
-    backgroundColor: COLORS.teal, borderRadius: 14,
+    backgroundColor: COLORS.primary, borderRadius: 8,
     paddingVertical: 16, alignItems: 'center', marginTop: 20,
-    shadowColor: COLORS.teal,
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
   },
   btnDisabled: { opacity: 0.6 },
-  btnText:  { color: COLORS.cream, fontSize: 15, fontWeight: '700' },
+  btnText:  { color: COLORS.white, fontSize: 15, fontWeight: '700' },
   footer:   { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  footerText: { color: COLORS.gray, fontSize: 13 },
-  footerLink: { color: COLORS.teal, fontSize: 13, fontWeight: '700' },
+  footerText: { color: COLORS.onSurfaceVariant, fontSize: 13 },
+  footerLink: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
 });

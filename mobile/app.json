@@ -5,13 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#F0EDE5"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F0EDE5"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#ffffff"
       },
       "package": "com.sudharsan7.eventfi"
     },

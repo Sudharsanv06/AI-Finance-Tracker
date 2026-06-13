@@ -27,16 +27,8 @@ export const chat = async (req, res, next) => {
     // Fetch user's financial context
     let contextText = '';
     try {
-      let eventQuery = {};
-      if (req.user.role === 'Organizer') {
-        eventQuery.createdBy = req.user._id;
-      }
-      const events   = await Event.find(eventQuery).limit(10);
-      const expenses = await Expense.find(
-        req.user.role === 'Organizer'
-          ? { submittedBy: req.user._id }
-          : {}
-      )
+      const events   = await Event.find({ createdBy: req.user._id }).limit(10);
+      const expenses = await Expense.find({ submittedBy: req.user._id })
         .populate('eventId', 'name')
         .limit(20);
 

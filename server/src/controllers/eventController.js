@@ -7,10 +7,7 @@ export const getEvents = async (req, res, next) => {
   try {
     let query = {};
 
-    // Organizer sees only their events
-    if (req.user.role === 'Organizer') {
-      query.createdBy = req.user._id;
-    }
+    query.createdBy = req.user._id;
 
     // Filter by status if provided
     if (req.query.status) {
@@ -45,11 +42,7 @@ export const getEventById = async (req, res, next) => {
       });
     }
 
-    // Organizer can only see their own events
-    if (
-      req.user.role === 'Organizer' &&
-      event.createdBy._id.toString() !== req.user._id.toString()
-    ) {
+    if (event.createdBy._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this event',
@@ -120,11 +113,7 @@ export const updateEvent = async (req, res, next) => {
       });
     }
 
-    // Only creator or FinanceAdmin can update
-    if (
-      req.user.role === 'Organizer' &&
-      event.createdBy.toString() !== req.user._id.toString()
-    ) {
+    if (event.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this event',
@@ -160,11 +149,7 @@ export const deleteEvent = async (req, res, next) => {
       });
     }
 
-    // Only creator or FinanceAdmin can delete
-    if (
-      req.user.role === 'Organizer' &&
-      event.createdBy.toString() !== req.user._id.toString()
-    ) {
+    if (event.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this event',

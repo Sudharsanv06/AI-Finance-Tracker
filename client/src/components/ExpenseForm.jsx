@@ -50,8 +50,6 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
     if (!description.trim())            return setError('Description is required');
     if (!amount || isNaN(amount))       return setError('Valid amount is required');
     if (parseFloat(amount) <= 0)        return setError('Amount must be greater than 0');
-    if (!eventId)                       return setError('Please select an event');
-
     setLoading(true);
     try {
       await expenseService.createExpense({
@@ -60,8 +58,8 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
         category,
         paymentMethod,
         date,
-        eventId,
-        notes: notes.trim(),
+        eventId:     eventId || null,
+        notes:       notes.trim(),
       });
       onSaved();
     } catch (err) {
@@ -114,14 +112,13 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
 
           {/* Event selector */}
           <div>
-            <label className="label">Event *</label>
+            <label className="label">Event (optional)</label>
             <select
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
               className="input"
-              required
             >
-              <option value="">Select an event...</option>
+              <option value="">No Event (Optional)</option>
               {events.map((ev) => (
                 <option key={ev._id} value={ev._id}>{ev.name}</option>
               ))}

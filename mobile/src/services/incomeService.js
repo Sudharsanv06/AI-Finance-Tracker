@@ -19,3 +19,8 @@ export const deleteIncome = async (id) => {
   const res = await api.delete(`/income/${id}`);
   return res.data;
 };
+
+export const updateIncome = async (id, data) => {
+  const res = await api.put(`/income/${id}`, data);
+  return res.data;
+};

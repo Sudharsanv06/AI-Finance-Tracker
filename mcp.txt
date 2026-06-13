@@ -1,0 +1,34 @@
+## Stitch Instructions
+
+Get the images and code for the following Stitch project's screens:
+
+## Project
+Title: EventFi AI Finance Tracker
+ID: 16166283823861750178
+
+## Screens:
+1. Design System
+    ID: asset-stub-assets_f6af669fe8bb49da8a54c80df867cffd
+
+2. Add Transaction - Rupees
+    ID: 252ce8ff97634595bf16550369671988
+
+3. Transactions - Rupees
+    ID: 98d02db89351495ba88d54a01a6b702c
+
+4. Analytics - Rupees
+    ID: b4116e41adea4e65a53f986977f91800
+
+5. Dashboard - Rupees
+    ID: fc3e3833784742ec8e5b1c5dec8be0f5
+
+6. Savings Goals - Rupees
+    ID: 27af838d525847ceb7425393b26636ad
+
+7. Dashboard Overview - Rupees
+    ID: d254faa6e8e8497fbeb4ef0e790bfde6
+
+8. Profile - Rupees
+    ID: e07460196b554901836c16b297d5cb6e
+
+Use a utility like `curl -L` to download the hosted URLs.
