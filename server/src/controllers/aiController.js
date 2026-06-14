@@ -32,132 +32,194 @@ export const chat = async (req, res, next) => {
     // Fetch user's financial context
     let contextText = '';
     try {
-      const [events, expenses, incomes, loans, goals, bills, investments] = await Promise.all([
-        Event.find({ createdBy: req.user._id }).limit(10),
-        Expense.find({ submittedBy: req.user._id }).populate('eventId', 'name').limit(20),
-        Income.find({ userId: req.user._id }),
-        Loan.find({ userId: req.user._id }),
-        Goal.find({ userId: req.user._id }),
-        Bill.find({ userId: req.user._id }),
-        Investment.find({ userId: req.user._id }),
+      // Fetch ALL user data in parallel
+      let eventQuery = {};
+      if (req.user.role === 'Organizer') {
+        eventQuery.createdBy = req.user._id;
+      }
+      
+      const userId = req.user._id;
+      const now = new Date();
+      const monthStart = new Date(
+        now.getFullYear(), now.getMonth(), 1
+      );
+
+      const [
+        events,
+        expenses,
+        incomes,
+        loans,
+        goals,
+        bills,
+        investments,
+      ] = await Promise.all([
+        Event.find(eventQuery).limit(10),
+        Expense.find(
+          req.user.role === 'Organizer'
+            ? { submittedBy: userId }
+            : {}
+        ).limit(20),
+        Income.find({ userId }).sort({ date: -1 }).limit(20),
+        Loan.find({ userId }),
+        Goal.find({ userId }),
+        Bill.find({ userId }),
+        Investment.find({ userId }),
       ]);
 
-      const totalBudget = events.reduce((s, e) => s + (e.totalBudget || 0), 0);
-      const totalSpent  = events.reduce((s, e) => s + (e.spentAmount  || 0), 0);
-      const pending     = expenses.filter((e) => e.approvalStatus === 'Pending').length;
-      const overBudget  = events.filter((e) => e.spentAmount > e.totalBudget).length;
+      // Calculate all metrics
+      const totalBudget = events.reduce(
+        (s, e) => s + (e.totalBudget || 0), 0
+      );
+      const totalSpent = events.reduce(
+        (s, e) => s + (e.spentAmount || 0), 0
+      );
+      const pending = expenses.filter(
+        e => e.approvalStatus === 'Pending'
+      ).length;
+      const overBudget = events.filter(
+        e => e.spentAmount > e.totalBudget
+      ).length;
 
-      // Incomes
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const totalIncome = incomes.reduce((s, i) => s + (i.amount || 0), 0);
+      const totalIncome = incomes.reduce(
+        (s, i) => s + (i.amount || 0), 0
+      );
       const monthlyIncome = incomes
-        .filter((inc) => new Date(inc.date) >= startOfMonth)
-        .reduce((s, inc) => s + (inc.amount || 0), 0);
+        .filter(i => new Date(i.date) >= monthStart)
+        .reduce((s, i) => s + (i.amount || 0), 0);
 
-      // Loans
-      const totalLoans = loans.reduce((s, l) => s + (l.principal || 0), 0);
-      const totalLoansPaid = loans.reduce((s, l) => s + (l.totalPaid || 0), 0);
-      const totalLoansRemaining = loans.reduce((s, l) => {
-        const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
-        return s + Math.max(0, totalPayable - (l.totalPaid || 0));
-      }, 0);
+      const takenLoans = loans.filter(l => l.type === 'taken');
+      const totalLoanDebt = takenLoans.reduce(
+        (s, l) => s + (l.remainingAmount || 0), 0
+      );
+      const monthlyEMI = takenLoans
+        .filter(l => l.status === 'active')
+        .reduce((s, l) => s + (l.emiAmount || 0), 0);
 
-      // Investments
-      const totalInvested = investments.reduce((s, i) => s + (i.investedAmount || 0), 0);
-      const totalCurrentValue = investments.reduce((s, i) => s + (i.currentValue || i.investedAmount || 0), 0);
+      const totalInvested = investments.reduce(
+        (s, i) => s + (i.investedAmount || 0), 0
+      );
+      const portfolioValue = investments.reduce(
+        (s, i) => s + (i.currentValue || i.investedAmount || 0), 0
+      );
+      const investmentReturns = portfolioValue - totalInvested;
 
-      // Goals
-      const totalGoalsTarget = goals.reduce((s, g) => s + (g.targetAmount || 0), 0);
-      const totalSaved = goals.reduce((s, g) => s + (g.currentAmount || 0), 0);
+      const activeGoals = goals.filter(g => g.status === 'active');
+      const completedGoals = goals.filter(
+        g => g.status === 'completed'
+      ).length;
+      const totalGoalTarget = activeGoals.reduce(
+        (s, g) => s + (g.targetAmount || 0), 0
+      );
+      const totalGoalSaved = activeGoals.reduce(
+        (s, g) => s + (g.currentAmount || 0), 0
+      );
 
-      // Bills
-      const unpaidBills = bills.filter((b) => {
-        const isDueThisMonth = b.lastPaidMonth !== now.getMonth() + 1 || b.lastPaidYear !== now.getFullYear();
-        return isDueThisMonth && !b.isPaid;
-      });
-      const totalUnpaidBillsAmt = unpaidBills.reduce((s, b) => s + (b.amount || 0), 0);
+      const unpaidBills = bills.filter(
+        b => b.isDueThisMonth && !b.isPaid
+      );
+      const monthlyBills = bills
+        .filter(b => b.frequency === 'monthly')
+        .reduce((s, b) => s + (b.amount || 0), 0);
 
-      // Net Worth Estimate
-      const netWorth = totalCurrentValue + totalSaved - totalLoansRemaining;
+      const netWorth = portfolioValue - totalLoanDebt;
+      const savingsRate = monthlyIncome > 0
+        ? Math.round(
+            ((monthlyIncome - monthlyEMI - monthlyBills) /
+              monthlyIncome) * 100
+          )
+        : 0;
 
       contextText = `
-Current user: ${req.user.name} (${req.user.role})
+=== ${req.user.name}'s Complete Financial Snapshot ===
+Role: ${req.user.role}
+Data as of: ${now.toLocaleDateString('en-IN')}
 
-=== FINANCIAL SUMMARY ===
-Monthly Income (Current Month): ₹${monthlyIncome.toLocaleString('en-IN')}
-Total Income: ₹${totalIncome.toLocaleString('en-IN')}
+💰 INCOME
+- Total income recorded: ₹${totalIncome.toLocaleString('en-IN')}
+- This month income: ₹${monthlyIncome.toLocaleString('en-IN')}
+- Income sources: ${[...new Set(incomes.map(i => i.source))].join(', ') || 'None'}
 
-Events & Expenses:
-- Total events: ${events.length}
+📅 EVENTS & EXPENSES  
+- Total events: ${events.length} (${overBudget} over budget)
 - Total budget: ₹${totalBudget.toLocaleString('en-IN')}
 - Total spent: ₹${totalSpent.toLocaleString('en-IN')}
-- Budget utilization: ${totalBudget ? Math.round((totalSpent / totalBudget) * 100) : 0}%
+- Budget used: ${totalBudget ? Math.round((totalSpent/totalBudget)*100) : 0}%
 - Pending approvals: ${pending}
-- Events over budget: ${overBudget}
+- Recent events: ${events.slice(0,3).map(e =>
+    `${e.name}(${Math.round((e.spentAmount/e.totalBudget)*100)||0}% used)`
+  ).join(', ') || 'None'}
 
-Loans:
-- Total loans: ${loans.length}
-- Total borrowed principal: ₹${totalLoans.toLocaleString('en-IN')}
-- Total paid back: ₹${totalLoansPaid.toLocaleString('en-IN')}
-- Outstanding debt remaining: ₹${totalLoansRemaining.toLocaleString('en-IN')}
+🤝 LOANS
+- Total debt outstanding: ₹${totalLoanDebt.toLocaleString('en-IN')}
+- Monthly EMI burden: ₹${monthlyEMI.toLocaleString('en-IN')}
+- Active loans: ${takenLoans.filter(l=>l.status==='active').length}
+- Loans: ${takenLoans.slice(0,3).map(l =>
+    `${l.title}(₹${(l.remainingAmount||0).toLocaleString('en-IN')} left)`
+  ).join(', ') || 'None'}
 
-Investments:
-- Total investments: ${investments.length}
-- Total amount invested: ₹${totalInvested.toLocaleString('en-IN')}
-- Portfolio current value: ₹${totalCurrentValue.toLocaleString('en-IN')}
+📈 INVESTMENTS
+- Total invested: ₹${totalInvested.toLocaleString('en-IN')}
+- Current portfolio value: ₹${portfolioValue.toLocaleString('en-IN')}
+- Total returns: ₹${investmentReturns.toLocaleString('en-IN')} (${
+    totalInvested > 0
+      ? ((investmentReturns/totalInvested)*100).toFixed(1)
+      : 0
+  }%)
 
-Goals:
-- Total goals: ${goals.length}
-- Total target: ₹${totalGoalsTarget.toLocaleString('en-IN')}
-- Total saved: ₹${totalSaved.toLocaleString('en-IN')}
+🎯 GOALS
+- Active goals: ${activeGoals.length}
+- Completed goals: ${completedGoals}
+- Total target: ₹${totalGoalTarget.toLocaleString('en-IN')}
+- Total saved: ₹${totalGoalSaved.toLocaleString('en-IN')}
+- Goals: ${activeGoals.slice(0,3).map(g =>
+    `${g.title}(${g.progressPercent||0}% done, ₹${
+      (g.remainingAmount||0).toLocaleString('en-IN')
+    } left)`
+  ).join(', ') || 'None'}
 
-Bills:
-- Total bills tracked: ${bills.length}
-- Unpaid bills this month: ${unpaidBills.length} (Total due: ₹${totalUnpaidBillsAmt.toLocaleString('en-IN')})
+💳 BILLS
+- Monthly bill obligations: ₹${monthlyBills.toLocaleString('en-IN')}
+- Unpaid this month: ${unpaidBills.length}
+- Urgent bills: ${unpaidBills.slice(0,3).map(b =>
+    `${b.title}(₹${b.amount} due ${b.dueDate}th)`
+  ).join(', ') || 'None'}
 
-Net Worth Estimate (Investments + Savings Goals - Outstanding Debt): ₹${netWorth.toLocaleString('en-IN')}
+📊 NET WORTH SUMMARY
+- Assets (investments): ₹${portfolioValue.toLocaleString('en-IN')}
+- Liabilities (loans): ₹${totalLoanDebt.toLocaleString('en-IN')}
+- Estimated net worth: ₹${netWorth.toLocaleString('en-IN')}
+- Savings rate: ${savingsRate}%
+`.trim();
 
-=== RECENT ACTIVITY ===
-Recent events: ${events.slice(0, 3).map((e) =>
-  `${e.name} (Budget: ₹${e.totalBudget}, Spent: ₹${e.spentAmount}, Status: ${e.status})`
-).join(' | ')}
-Recent expenses: ${expenses.slice(0, 3).map((e) =>
-  `${e.description} ₹${e.amount} [${e.approvalStatus}]`
-).join(' | ')}
-Recent goals: ${goals.slice(0, 3).map((g) =>
-  `${g.title} (Target: ₹${g.targetAmount}, Saved: ₹${g.currentAmount})`
-).join(' | ')}
-Recent investments: ${investments.slice(0, 3).map((i) =>
-  `${i.name} (${i.type}, Invested: ₹${i.investedAmount}, Current: ₹${i.currentValue})`
-).join(' | ')}
-Recent bills: ${bills.slice(0, 3).map((b) =>
-  `${b.title} (₹${b.amount}, Due day: ${b.dueDate}, Paid: ${b.isPaid})`
-).join(' | ')}
-      `.trim();
-    } catch {
-      contextText = `User: ${req.user.name} (${req.user.role})`;
+    } catch (contextError) {
+      console.error('Context fetch error:', contextError);
+      contextText = `User: ${req.user.name} (${req.user.role})
+Note: Could not fetch complete financial data.`;
     }
 
     // Build messages array
     const messages = [
       {
-        role:    'system',
-        content: `You are EventFi's AI financial assistant — a smart,
-friendly advisor for event budget management and personal finance.
+        role: 'system',
+        content: `You are EventFi AI — a personal financial advisor 
+for ${req.user.name}. You have their complete financial data below.
 
-CONTEXT ABOUT THIS USER:
 ${contextText}
 
-YOUR ROLE:
-- Help with event budgeting, expense analysis, and personal finance decisions (incomes, loans, goals, bills, and investments)
-- Give specific advice based on the user's actual numbers shown in the context above (always reference specific stats, incomes, goals, or debt numbers where relevant)
-- Keep answers concise (2-4 sentences max unless asked for detail)
-- Use ₹ for Indian Rupee amounts
-- Be proactive: mention concerns like over-budget events, unpaid bills, high outstanding debt, or pending approvals
-- You can help categorize expenses, suggest budget allocations, analyze spending
-
-TONE: Encouraging, friendly, and professional. Speak like a knowledgeable finance colleague, not a robot.`,
+YOUR BEHAVIOR:
+- ALWAYS use their actual numbers. Never say "I don't have access 
+  to your data" — you have it all above.
+- When asked general questions like "how am I doing" or 
+  "give me a summary", analyze ALL sections above and give 
+  a complete picture
+- Point out concerns: over-budget events, high EMI-to-income 
+  ratio, unpaid bills, slow goal progress
+- Be encouraging but honest
+- Keep responses to 3-4 sentences MAX unless user asks for detail
+- Use ₹ for all Indian currency amounts
+- If a section has no data (None), acknowledge it and suggest 
+  they start tracking that category
+- Never make up numbers — only use what's in the context above`,
       },
       ...history.slice(-6).map((msg) => ({
         role:    msg.role,

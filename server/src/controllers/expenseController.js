@@ -131,11 +131,13 @@ export const updateExpense = async (req, res, next) => {
         message: 'Expense not found',
       });
     }
-
-    if (expense.submittedBy.toString() !== req.user._id.toString()) {
+    if (
+      req.user.role === 'Organizer' &&
+      expense.submittedBy.toString() !== req.user._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to update this expense',
+        message: 'Not authorized',
       });
     }
 
@@ -144,42 +146,18 @@ export const updateExpense = async (req, res, next) => {
     const oldStatus = expense.approvalStatus;
     const oldEventId = expense.eventId;
 
-    const {
-      description,
-      amount,
-      category,
-      paymentMethod,
-      date,
-      eventId,
-      notes,
-      approvalStatus,
-    } = req.body;
-
-    if (description) expense.description = description;
-    if (amount !== undefined) expense.amount = amount;
-    if (category) expense.category = category;
-    if (paymentMethod) expense.paymentMethod = paymentMethod;
-    if (date) expense.date = date;
+    const { description, amount, category,
+            paymentMethod, date, eventId, notes } = req.body;
+    
+    if (description !== undefined) expense.description = description;
+    if (amount !== undefined) expense.amount = parseFloat(amount);
+    if (category !== undefined) expense.category = category;
+    if (paymentMethod !== undefined) expense.paymentMethod = paymentMethod;
+    if (date !== undefined) expense.date = date;
+    if (eventId !== undefined) expense.eventId = eventId || null;
     if (notes !== undefined) expense.notes = notes;
-    if (approvalStatus) expense.approvalStatus = approvalStatus;
 
-    if (eventId !== undefined) {
-      const cleanEventId = (eventId && eventId !== 'null' && eventId !== '') ? eventId : null;
-      expense.eventId = cleanEventId;
-    }
-
-    // Verify event exists if provided
-    if (expense.eventId) {
-      const event = await Event.findById(expense.eventId);
-      if (!event) {
-        return res.status(404).json({
-          success: false,
-          message: 'Event not found',
-        });
-      }
-    }
-
-    await expense.save();
+    const updated = await expense.save();
 
     // Adjust spentAmount on the event if eventId exists
     // Deduct old amount from old event if it was Approved or Paid
@@ -189,21 +167,22 @@ export const updateExpense = async (req, res, next) => {
       });
     }
     // Add new amount to new event if new status is Approved or Paid
-    if (expense.eventId && (expense.approvalStatus === 'Approved' || expense.approvalStatus === 'Paid')) {
-      await Event.findByIdAndUpdate(expense.eventId, {
-        $inc: { spentAmount: expense.amount },
+    if (updated.eventId && (updated.approvalStatus === 'Approved' || updated.approvalStatus === 'Paid')) {
+      await Event.findByIdAndUpdate(updated.eventId, {
+        $inc: { spentAmount: updated.amount },
       });
     }
 
-    await expense.populate([
-      { path: 'eventId',     select: 'name totalBudget spentAmount' },
+    await updated.populate([
+      { path: 'eventId', select: 'name totalBudget spentAmount' },
       { path: 'submittedBy', select: 'name email role' },
+      { path: 'approvedBy', select: 'name email role' },
     ]);
 
     res.json({
       success: true,
       message: 'Expense updated successfully',
-      data: { expense },
+      data: { expense: updated },
     });
   } catch (error) {
     next(error);
