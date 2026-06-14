@@ -98,18 +98,19 @@ function CustomDatePickerModal({ visible, date, onSelect, onClose }) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={ds.overlay}>
-        <View style={ds.content}>
-          <View style={ds.header}>
-            <TouchableOpacity onPress={prevMonth} style={ds.arrow}>
-              <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-            <Text style={ds.title}>{MONTH_NAMES[currentMonth]} {currentYear}</Text>
-            <TouchableOpacity onPress={nextMonth} style={ds.arrow}>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <View style={s.modalHeader}>
+          <TouchableOpacity onPress={prevMonth} style={{ padding: 8 }}>
+            <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={s.modalTitle}>{MONTH_NAMES[currentMonth]} {currentYear}</Text>
+          <TouchableOpacity onPress={nextMonth} style={{ padding: 8 }}>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={ds.weekRow}>
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
               <Text key={d} style={ds.weekText}>{d}</Text>
@@ -139,11 +140,14 @@ function CustomDatePickerModal({ visible, date, onSelect, onClose }) {
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity style={ds.closeBtn} onPress={onClose}>
+        </ScrollView>
+
+        <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
+          <TouchableOpacity style={[ds.closeBtn, { marginTop: 0 }]} onPress={onClose}>
             <Text style={ds.closeBtnText}>Cancel</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -501,76 +505,84 @@ export default function AddTransactionScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Category Select Modal */}
-      <Modal visible={showCategoryModal} animationType="slide" transparent>
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Select Category</Text>
-              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
+      <Modal visible={showCategoryModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCategoryModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Select Category</Text>
+            <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={categoriesList}
+            keyExtractor={(item) => item}
+            style={{ flex: 1 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={s.modalItem}
+                onPress={() => {
+                  setCategory(item);
+                  setShowCategoryModal(false);
+                }}
+              >
+                <Text style={s.modalItemEmoji}>{CATEGORY_ICONS[item] || '📦'}</Text>
+                <Text style={s.modalItemText}>{item}</Text>
               </TouchableOpacity>
+            )}
+          />
+          <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
+            <TouchableOpacity style={[s.cancelBtn, { marginVertical: 0 }]} onPress={() => setShowCategoryModal(false)}>
+              <Text style={s.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Event Select Modal */}
+      <Modal visible={showEventModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEventModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Select Event</Text>
+            <TouchableOpacity onPress={() => setShowEventModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
+          {events.length === 0 ? (
+            <View style={{ flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: COLORS.onSurfaceVariant, fontSize: 14 }}>No active events found</Text>
             </View>
+          ) : (
             <FlatList
-              data={categoriesList}
-              keyExtractor={(item) => item}
+              data={events}
+              keyExtractor={(item) => item._id}
+              style={{ flex: 1 }}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={s.modalItem}
                   onPress={() => {
-                    setCategory(item);
-                    setShowCategoryModal(false);
+                    setSelectedEventId(item._id);
+                    setShowEventModal(false);
                   }}
                 >
-                  <Text style={s.modalItemEmoji}>{CATEGORY_ICONS[item] || '📦'}</Text>
-                  <Text style={s.modalItemText}>{item}</Text>
+                  <Text style={s.modalItemEmoji}>🎯</Text>
+                  <View>
+                    <Text style={s.modalItemText}>{item.name}</Text>
+                    {item.totalBudget && (
+                      <Text style={{ fontSize: 12, color: COLORS.outline, marginTop: 2 }}>
+                        Budget: {formatCurrency(item.totalBudget)}
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               )}
             />
+          )}
+          <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
+            <TouchableOpacity style={[s.cancelBtn, { marginVertical: 0 }]} onPress={() => setShowEventModal(false)}>
+              <Text style={s.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-
-      {/* Event Select Modal */}
-      <Modal visible={showEventModal} animationType="slide" transparent>
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Select Event</Text>
-              <TouchableOpacity onPress={() => setShowEventModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
-            {events.length === 0 ? (
-              <View style={{ padding: 24, alignItems: 'center' }}>
-                <Text style={{ color: COLORS.onSurfaceVariant, fontSize: 14 }}>No active events found</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={events}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={s.modalItem}
-                    onPress={() => {
-                      setSelectedEventId(item._id);
-                      setShowEventModal(false);
-                    }}
-                  >
-                    <Text style={s.modalItemEmoji}>🎯</Text>
-                    <View>
-                      <Text style={s.modalItemText}>{item.name}</Text>
-                      {item.totalBudget && (
-                        <Text style={{ fontSize: 12, color: COLORS.outline, marginTop: 2 }}>
-                          Budget: {formatCurrency(item.totalBudget)}
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </View>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       <CustomDatePickerModal

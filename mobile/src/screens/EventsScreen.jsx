@@ -181,7 +181,7 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={ms.label}>EVENT NAME *</Text>
             <TextInput
               style={[
@@ -263,7 +263,9 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
                 </TouchableOpacity>
               ))}
             </View>
+          </ScrollView>
 
+          <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
             <TouchableOpacity
               style={[ms.submitBtn, loading && { opacity: 0.6 }]}
               onPress={handleSubmit}
@@ -279,7 +281,7 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
             <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
               <Text style={ms.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
 
         <CustomDatePickerModal
@@ -514,6 +516,7 @@ export default function EventsScreen() {
           />
         )}
         contentContainerStyle={s.list}
+        ListFooterComponent={<View style={{height:100}}/>}
         refreshControl={
           <RefreshControl refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); fetchAll(); }}

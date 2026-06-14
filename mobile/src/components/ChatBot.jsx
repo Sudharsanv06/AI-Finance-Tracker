@@ -3,7 +3,9 @@ import {
   TextInput, FlatList, Modal, ActivityIndicator,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import api    from '../services/api';
 import { COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -26,6 +28,7 @@ const cleanMarkdown = (text) => {
 };
 
 export default function ChatBot() {
+  const { user } = useAuth();
   const [isOpen,   setIsOpen]   = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -36,6 +39,17 @@ export default function ChatBot() {
   const [input,   setInput]   = useState('');
   const [loading, setLoading] = useState(false);
   const listRef               = useRef(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset chat to fresh state on each focus
+      setMessages([{
+        role: 'assistant',
+        content: `Hi ${user?.name?.split(' ')[0] || 'there'}! \nI'm your EventFi AI advisor. I have access to all your \nfinancial data. Ask me anything! 💼`,
+      }]);
+      setInput('');
+    }, [user?.name])
+  );
 
   // Auto-scroll to bottom when messages or loading state changes
   useEffect(() => {
@@ -57,9 +71,9 @@ export default function ChatBot() {
     setLoading(true);
 
     try {
-      const history = messages.slice(1).map((m) => ({
-        role: m.role, content: m.content,
-      }));
+      const history = messages
+        .slice(-8) // last 4 exchanges only
+        .map(m => ({ role: m.role, content: m.content }));
       const res = await api.post('/ai/chat', { message: msg, history });
       setMessages((prev) => [
         ...prev,
@@ -123,12 +137,23 @@ export default function ChatBot() {
                 <Text style={s.headerSub}>Powered by Groq</Text>
               </View>
             </View>
-            <TouchableOpacity
-              onPress={() => setIsOpen(false)}
-              style={s.closeBtn}
-            >
-              <Ionicons name="close" size={20} color="#ffffff" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setMessages([{
+                  role: 'assistant',
+                  content: 'Chat cleared! Ask me anything about your finances.',
+                }])}
+                style={s.clearBtn}
+              >
+                <Text style={s.clearBtnText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setIsOpen(false)}
+                style={s.closeBtn}
+              >
+                <Ionicons name="close" size={20} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Messages */}
@@ -137,8 +162,15 @@ export default function ChatBot() {
             data={messages}
             keyExtractor={(_, i) => String(i)}
             renderItem={renderMessage}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-            contentContainerStyle={s.messageList}
+            style={{ flex: 1, maxHeight: 320 }}
+            contentContainerStyle={{ padding: 12, gap: 8, paddingBottom: 8 }}
+            onContentSizeChange={() =>
+              listRef.current?.scrollToEnd({ animated: true })
+            }
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10,
+            }}
             ListFooterComponent={
               loading ? (
                 <View style={s.typingRow}>
@@ -230,6 +262,17 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
+  },
+  clearBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  clearBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   messageList: { padding: 16, gap: 12, paddingBottom: 16 },
   msgRow:     { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 4 },

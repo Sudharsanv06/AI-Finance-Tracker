@@ -16,6 +16,7 @@ import api from '../services/api';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import ChatBot from '../components/ChatBot';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ExpenseFormModal } from './ExpensesScreen';
 
 const BILL_ICONS = {
   Rent: '🏠',
@@ -49,6 +50,17 @@ export default function DashboardScreen({ navigation }) {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [showEditExpense, setShowEditExpense] = useState(false);
+
+  const handleEditExpense = (expense) => {
+    if (!expense || !expense._id) {
+      Alert.alert('Error', 'Cannot edit this expense');
+      return;
+    }
+    setEditingExpense(expense);
+    setShowEditExpense(true);
+  };
 
   const [focusedField, setFocusedField] = useState(null);
   const [startingBalances, setStartingBalances] = useState({
@@ -220,7 +232,7 @@ export default function DashboardScreen({ navigation }) {
     .filter(e => e.category === 'Self Transfer' && e.approvalStatus !== 'Rejected')
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const getAccountBalance = () => {
+  const getAccountBalance = (accountName) => {
     const mainStart = startingBalances['Main Account'] ?? 0;
     const savingsStart = startingBalances['Savings Account'] ?? 0;
     const creditStart = startingBalances['Credit Card'] ?? 0;
@@ -228,7 +240,7 @@ export default function DashboardScreen({ navigation }) {
 
     const totalHistoricalIncome = incomeSummary?.allTimeTotal || 0;
 
-    switch(selectedAccount) {
+    switch(accountName || selectedAccount) {
       case 'Savings Account':
         return savingsStart + totalSelfTransfers;
       case 'Credit Card':
@@ -305,30 +317,86 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Hero Card: Main Account Balance Card */}
-        <View style={s.balanceCard}>
-          <View style={s.balanceCardTop}>
-            <TouchableOpacity style={s.balanceTag} onPress={() => setShowAccountModal(true)}>
-              <Text style={s.balanceTagText}>{selectedAccount}</Text>
-              <Ionicons name="chevron-down" size={12} color="#ffffff" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowActionsModal(true)}>
-              <Ionicons name="ellipsis-vertical" size={18} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={s.balanceLabel}>Total Balance</Text>
-          <View style={s.amountRow}>
-            {isBalancesConfigured ? (
-              <>
-                <Text style={s.balanceAmount}>
-                  {showBalance ? formatCurrency(getAccountBalance()) : '••••••'}
-                </Text>
-                <TouchableOpacity onPress={() => setShowBalance(!showBalance)} style={s.eyeIcon}>
-                  <Ionicons name={showBalance ? "eye-outline" : "eye-off-outline"} size={20} color="#ffffff" />
+        {/* Hero Card: Starting balance cards horizontally scrollable if 3+ cards */}
+        {isBalancesConfigured ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 0, paddingRight: 8, marginBottom: 20 }}>
+            {Object.keys(startingBalances).map((acc) => {
+              const balance = getAccountBalance(acc);
+              const isSelected = selectedAccount === acc;
+              return (
+                <TouchableOpacity
+                  key={acc}
+                  activeOpacity={0.9}
+                  style={[
+                    s.balanceCard,
+                    {
+                      width: 280,
+                      marginRight: 12,
+                      marginBottom: 0,
+                      borderWidth: isSelected ? 2 : 0,
+                      borderColor: '#ffffff',
+                    }
+                  ]}
+                  onPress={() => setSelectedAccount(acc)}
+                >
+                  <View style={s.balanceCardTop}>
+                    <View style={s.balanceTag}>
+                      <Text style={s.balanceTagText}>{acc}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setShowActionsModal(true)}>
+                      <Ionicons name="ellipsis-vertical" size={18} color="#ffffff" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <Text style={s.balanceLabel}>Total Balance</Text>
+                  <View style={s.amountRow}>
+                    <Text style={s.balanceAmount}>
+                      {showBalance ? formatCurrency(balance) : '••••••'}
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowBalance(!showBalance)} style={s.eyeIcon}>
+                      <Ionicons name={showBalance ? "eye-outline" : "eye-off-outline"} size={20} color="#ffffff" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={s.balanceCardDivider} />
+
+                  <View style={s.balanceCardBottom}>
+                    <View style={s.balanceCol}>
+                      <Text style={s.balanceColLabel}>MONTHLY INCOME</Text>
+                      <View style={s.trendRow}>
+                        <Text style={s.balanceColVal}>₹{thisMonthIncome.toLocaleString('en-IN')}</Text>
+                        <View style={[s.trendBadge, s.trendGreen]}>
+                          <Text style={s.trendText}>↗ 5.2%</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={s.balanceCol}>
+                      <Text style={s.balanceColLabel}>MONTHLY EXPENSE</Text>
+                      <View style={s.trendRow}>
+                        <Text style={s.balanceColVal}>₹{thisMonthExpenses.toLocaleString('en-IN')}</Text>
+                        <View style={[s.trendBadge, s.trendRed]}>
+                          <Text style={s.trendText}>↘ 2.8%</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
                 </TouchableOpacity>
-              </>
-            ) : (
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <View style={s.balanceCard}>
+            <View style={s.balanceCardTop}>
+              <View style={s.balanceTag}>
+                <Text style={s.balanceTagText}>{selectedAccount}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowActionsModal(true)}>
+                <Ionicons name="ellipsis-vertical" size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={s.balanceLabel}>Total Balance</Text>
+            <View style={s.amountRow}>
               <TouchableOpacity
                 onPress={() => {
                   const initial = {};
@@ -343,32 +411,32 @@ export default function DashboardScreen({ navigation }) {
               >
                 <Text style={s.setupBalanceBtnText}>⚙️ Set Starting Balance</Text>
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
 
-          <View style={s.balanceCardDivider} />
+            <View style={s.balanceCardDivider} />
 
-          <View style={s.balanceCardBottom}>
-            <View style={s.balanceCol}>
-              <Text style={s.balanceColLabel}>MONTHLY INCOME</Text>
-              <View style={s.trendRow}>
-                <Text style={s.balanceColVal}>₹{thisMonthIncome.toLocaleString('en-IN')}</Text>
-                <View style={[s.trendBadge, s.trendGreen]}>
-                  <Text style={s.trendText}>↗ 5.2%</Text>
+            <View style={s.balanceCardBottom}>
+              <View style={s.balanceCol}>
+                <Text style={s.balanceColLabel}>MONTHLY INCOME</Text>
+                <View style={s.trendRow}>
+                  <Text style={s.balanceColVal}>₹{thisMonthIncome.toLocaleString('en-IN')}</Text>
+                  <View style={[s.trendBadge, s.trendGreen]}>
+                    <Text style={s.trendText}>↗ 5.2%</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={s.balanceCol}>
+                <Text style={s.balanceColLabel}>MONTHLY EXPENSE</Text>
+                <View style={s.trendRow}>
+                  <Text style={s.balanceColVal}>₹{thisMonthExpenses.toLocaleString('en-IN')}</Text>
+                  <View style={[s.trendBadge, s.trendRed]}>
+                    <Text style={s.trendText}>↘ 2.8%</Text>
+                  </View>
                 </View>
               </View>
             </View>
-            <View style={s.balanceCol}>
-              <Text style={s.balanceColLabel}>MONTHLY EXPENSE</Text>
-              <View style={s.trendRow}>
-                <Text style={s.balanceColVal}>₹{thisMonthExpenses.toLocaleString('en-IN')}</Text>
-                <View style={[s.trendBadge, s.trendRed]}>
-                  <Text style={s.trendText}>↘ 2.8%</Text>
-                </View>
-              </View>
-            </View>
           </View>
-        </View>
+        )}
 
         {/* Monthly Budget Card */}
         <View style={s.card}>
@@ -444,7 +512,7 @@ export default function DashboardScreen({ navigation }) {
             </View>
           ) : (
             expenses.slice(0, 4).map((exp) => (
-              <View key={exp._id} style={s.expenseItem}>
+              <TouchableOpacity key={exp._id} style={s.expenseItem} onPress={() => handleEditExpense(exp)}>
                 <View style={[s.billIconWrapper, { backgroundColor: 'rgba(0, 88, 190, 0.05)' }]}>
                   <Text style={s.billIconText}>💸</Text>
                 </View>
@@ -453,22 +521,28 @@ export default function DashboardScreen({ navigation }) {
                   <Text style={s.billDue}>{exp.eventId?.name || 'General Expense'}</Text>
                 </View>
                 <Text style={s.expenseAmount}>-{formatCurrency(exp.amount)}</Text>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
       </ScrollView>
 
       {/* Account Selector Modal */}
-      <Modal visible={showAccountModal} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Select Account</Text>
-              <TouchableOpacity onPress={() => setShowAccountModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
+      <Modal visible={showAccountModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAccountModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Select Account</Text>
+            <TouchableOpacity onPress={() => setShowAccountModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+          >
             {[
               { name: 'Main Account', icon: '🏦', desc: 'Primary Bank Account' },
               { name: 'Savings Account', icon: '📈', desc: 'Investment & Savings' },
@@ -490,23 +564,29 @@ export default function DashboardScreen({ navigation }) {
                 </View>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowAccountModal(false)}>
+            <TouchableOpacity style={[s.modalCloseBtn, { marginTop: 24, marginBottom: 20 }]} onPress={() => setShowAccountModal(false)}>
               <Text style={s.modalCloseText}>Cancel</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
       {/* Quick Actions Modal */}
-      <Modal visible={showActionsModal} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Quick Actions</Text>
-              <TouchableOpacity onPress={() => setShowActionsModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
+      <Modal visible={showActionsModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowActionsModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Quick Actions</Text>
+            <TouchableOpacity onPress={() => setShowActionsModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+          >
             <TouchableOpacity
               style={s.modalItem}
               onPress={() => {
@@ -552,24 +632,34 @@ export default function DashboardScreen({ navigation }) {
               <Text style={{ fontSize: 20, marginRight: 16 }}>⚙️</Text>
               <Text style={s.modalItemText}>Edit Starting Balances</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowActionsModal(false)}>
+            <TouchableOpacity style={[s.modalCloseBtn, { marginTop: 24, marginBottom: 20 }]} onPress={() => setShowActionsModal(false)}>
               <Text style={s.modalCloseText}>Cancel</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
       {/* Edit Starting Balances Modal */}
-      <Modal visible={showEditBalancesModal} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
+      <Modal visible={showEditBalancesModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEditBalancesModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Edit Starting Balances</Text>
               <TouchableOpacity onPress={() => setShowEditBalancesModal(false)}>
                 <Ionicons name="close" size={24} color={COLORS.onSurface} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ paddingHorizontal: 20, marginTop: 10, maxHeight: 300 }}>
+
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={true}
+            >
               {Object.keys(tempBalances).map((acc) => (
                 <View key={acc} style={{ marginBottom: 12 }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant, marginBottom: 4 }}>
@@ -626,87 +716,107 @@ export default function DashboardScreen({ navigation }) {
                   />
                 </View>
               ))}
+              
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#0058be',
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  marginTop: 24,
+                  marginBottom: 10
+                }}
+                onPress={() => {
+                  const finalBalances = {};
+                  Object.keys(tempBalances).forEach(k => {
+                    finalBalances[k] = parseFloat(tempBalances[k]) || 0;
+                  });
+                  saveBalances(finalBalances);
+                  setShowEditBalancesModal(false);
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 14 }}>Save Balances</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={[s.modalCloseBtn, { margin: 0 }]} onPress={() => setShowEditBalancesModal(false)}>
+                <Text style={s.modalCloseText}>Cancel</Text>
+              </TouchableOpacity>
             </ScrollView>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#0058be',
-                borderRadius: 12,
-                paddingVertical: 12,
-                alignItems: 'center',
-                marginHorizontal: 20,
-                marginTop: 10
-              }}
-              onPress={() => {
-                const finalBalances = {};
-                Object.keys(tempBalances).forEach(k => {
-                  finalBalances[k] = parseFloat(tempBalances[k]) || 0;
-                });
-                saveBalances(finalBalances);
-                setShowEditBalancesModal(false);
-              }}
-            >
-              <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 14 }}>Save Balances</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowEditBalancesModal(false)}>
-              <Text style={s.modalCloseText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
 
       {/* Dynamic Notifications Modal */}
-      <Modal visible={showNotificationModal} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Notification Center</Text>
-              <TouchableOpacity onPress={() => setShowNotificationModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ maxHeight: 300, paddingHorizontal: 20, marginTop: 10 }}>
-              {/* Dynamic Budget Alert */}
-              {totalBudgetLimit > 0 && budgetPercent >= 80 && (
-                <View style={[s.notifCard, { borderColor: COLORS.red }]}>
-                  <Text style={{ fontSize: 20, marginRight: 12 }}>⚠️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '700', color: COLORS.red, fontSize: 13 }}>Budget Alert</Text>
-                    <Text style={s.notifText}>You have utilized {budgetPercent}% of your monthly budget limit!</Text>
-                  </View>
-                </View>
-              )}
-              {/* Dynamic Bills Alert */}
-              {bills.filter(b => b.isDueThisMonth && !b.isPaid && b.daysUntilDue <= 3).map((bill) => (
-                <View key={bill._id} style={[s.notifCard, { borderColor: COLORS.red }]}>
-                  <Text style={{ fontSize: 20, marginRight: 12 }}>⏰</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '700', color: COLORS.red, fontSize: 13 }}>Bill Due Soon</Text>
-                    <Text style={s.notifText}>'{bill.title}' of {formatCurrency(bill.amount)} is due in {bill.daysUntilDue} days!</Text>
-                  </View>
-                </View>
-              ))}
-              {/* General welcome notification cards */}
-              <View style={s.notifCard}>
-                <Text style={{ fontSize: 20, marginRight: 12 }}>🎉</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: '700', color: COLORS.onSurface, fontSize: 13 }}>Welcome!</Text>
-                  <Text style={s.notifText}>Welcome to AI Finance Tracker v1.00. Your accounts are ready.</Text>
-                </View>
-              </View>
-              <View style={s.notifCard}>
-                <Text style={{ fontSize: 20, marginRight: 12 }}>💡</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: '700', color: COLORS.onSurface, fontSize: 13 }}>AI Tip</Text>
-                  <Text style={s.notifText}>Click the '+' icon to log transactions, and use the AI Chat bot to analyze your habits.</Text>
-                </View>
-              </View>
-            </ScrollView>
-            <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowNotificationModal(false)}>
-              <Text style={s.modalCloseText}>Dismiss All</Text>
+      <Modal visible={showNotificationModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotificationModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Notification Center</Text>
+            <TouchableOpacity onPress={() => setShowNotificationModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
             </TouchableOpacity>
           </View>
-        </View>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+          >
+            {/* Dynamic Budget Alert */}
+            {totalBudgetLimit > 0 && budgetPercent >= 80 && (
+              <View style={[s.notifCard, { borderColor: COLORS.red }]}>
+                <Text style={{ fontSize: 20, marginRight: 12 }}>⚠️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '700', color: COLORS.red, fontSize: 13 }}>Budget Alert</Text>
+                  <Text style={s.notifText}>You have utilized {budgetPercent}% of your monthly budget limit!</Text>
+                </View>
+              </View>
+            )}
+            {/* Dynamic Bills Alert */}
+            {bills.filter(b => b.isDueThisMonth && !b.isPaid && b.daysUntilDue <= 3).map((bill) => (
+              <View key={bill._id} style={[s.notifCard, { borderColor: COLORS.red }]}>
+                <Text style={{ fontSize: 20, marginRight: 12 }}>⏰</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '700', color: COLORS.red, fontSize: 13 }}>Bill Due Soon</Text>
+                  <Text style={s.notifText}>'{bill.title}' of {formatCurrency(bill.amount)} is due in {bill.daysUntilDue} days!</Text>
+                </View>
+              </View>
+            ))}
+            {/* General welcome notification cards */}
+            <View style={s.notifCard}>
+              <Text style={{ fontSize: 20, marginRight: 12 }}>🎉</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '700', color: COLORS.onSurface, fontSize: 13 }}>Welcome!</Text>
+                <Text style={s.notifText}>Welcome to AI Finance Tracker v1.00. Your accounts are ready.</Text>
+              </View>
+            </View>
+            <View style={s.notifCard}>
+              <Text style={{ fontSize: 20, marginRight: 12 }}>💡</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '700', color: COLORS.onSurface, fontSize: 13 }}>AI Tip</Text>
+                <Text style={s.notifText}>Click the '+' icon to log transactions, and use the AI Chat bot to analyze your habits.</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={[s.modalCloseBtn, { marginTop: 24, marginBottom: 20, marginHorizontal: 0 }]} onPress={() => setShowNotificationModal(false)}>
+              <Text style={s.modalCloseText}>Dismiss All</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
+
+      <ExpenseFormModal
+        visible={showEditExpense}
+        expense={editingExpense}
+        onClose={() => {
+          setShowEditExpense(false);
+          setEditingExpense(null);
+        }}
+        onSaved={() => {
+          setShowEditExpense(false);
+          setEditingExpense(null);
+          fetchAll();
+        }}
+      />
 
       <ChatBot />
     </>

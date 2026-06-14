@@ -37,47 +37,47 @@ const MONTHS = [
 
 function PickerModal({ visible, onClose, title, items, selectedValue, onSelect }) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={s.modalOverlay}>
-        <View style={s.modalContent}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <View style={s.modalHeader}>
+          <Text style={s.modalTitle}>{title}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="close" size={24} color={COLORS.onSurface} />
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          data={items}
+          keyExtractor={(item) => String(item.value)}
+          style={{ flex: 1, paddingHorizontal: 20 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                s.modalPickerItem,
+                selectedValue === item.value && { backgroundColor: COLORS.surfaceContainerLow }
+              ]}
+              onPress={() => {
+                onSelect(item.value);
+                onClose();
+              }}
+            >
+              <Text style={[
+                s.modalPickerItemText,
+                selectedValue === item.value && { fontWeight: '700', color: COLORS.primary }
+              ]}>
+                {item.label}
+              </Text>
+              {selectedValue === item.value && (
+                <Ionicons name="checkmark" size={18} color={COLORS.primary} />
+              )}
             </TouchableOpacity>
-          </View>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => String(item.value)}
-            style={{ maxHeight: 280, paddingHorizontal: 20 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  s.modalPickerItem,
-                  selectedValue === item.value && { backgroundColor: COLORS.surfaceContainerLow }
-                ]}
-                onPress={() => {
-                  onSelect(item.value);
-                  onClose();
-                }}
-              >
-                <Text style={[
-                  s.modalPickerItemText,
-                  selectedValue === item.value && { fontWeight: '700', color: COLORS.primary }
-                ]}>
-                  {item.label}
-                </Text>
-                {selectedValue === item.value && (
-                  <Ionicons name="checkmark" size={18} color={COLORS.primary} />
-                )}
-              </TouchableOpacity>
-            )}
-          />
-          <TouchableOpacity style={s.modalCloseBtn} onPress={onClose}>
+          )}
+        />
+        <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
+          <TouchableOpacity style={[s.modalCloseBtn, { marginHorizontal: 0, marginTop: 0 }]} onPress={onClose}>
             <Text style={s.modalCloseText}>Cancel</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -344,6 +344,7 @@ export default function BudgetPlannerScreen({ navigation }) {
             );
           })
         )}
+        <View style={{ height: 80 }} />
       </ScrollView>
 
       {/* Month Picker Modal */}
@@ -381,7 +382,7 @@ export default function BudgetPlannerScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
-            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {/* Category Select Grid */}
               {!editingBudget && (
                 <View style={{ marginBottom: 16 }}>
@@ -467,8 +468,9 @@ export default function BudgetPlannerScreen({ navigation }) {
                   You will be notified when spending reaches this percent.
                 </Text>
               </View>
+            </ScrollView>
 
-              {/* Save Button */}
+            <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
               <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
                 {saving ? (
                   <ActivityIndicator size="small" color="#ffffff" />
@@ -477,11 +479,10 @@ export default function BudgetPlannerScreen({ navigation }) {
                 )}
               </TouchableOpacity>
 
-              {/* Cancel Button */}
               <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
                 <Text style={s.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>

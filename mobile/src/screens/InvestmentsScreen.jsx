@@ -335,6 +335,7 @@ export default function InvestmentsScreen({ navigation }) {
             );
           })
         )}
+        <View style={{ height: 80 }} />
       </ScrollView>
 
       {/* Set/Edit Investment Form Modal */}
@@ -352,7 +353,7 @@ export default function InvestmentsScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
-            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {/* Investment Type Selection */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={s.inputLabel}>Investment Type</Text>
@@ -561,7 +562,7 @@ export default function InvestmentsScreen({ navigation }) {
                     >
                       <Text style={[
                         s.statusBoxTitle,
-                        status === item.value ? s.statusBoxTitleActive : s.statusBoxTitleInactive
+                        status === item.value ? s.statusBoxActive : s.statusBoxInactive
                       ]}>
                         {item.label}
                       </Text>
@@ -589,8 +590,9 @@ export default function InvestmentsScreen({ navigation }) {
                   selectionColor={COLORS.teal + '40'}
                 />
               </View>
+            </ScrollView>
 
-              {/* Save Button */}
+            <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
               <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
                 {saving ? (
                   <ActivityIndicator size="small" color="#ffffff" />
@@ -599,11 +601,10 @@ export default function InvestmentsScreen({ navigation }) {
                 )}
               </TouchableOpacity>
 
-              {/* Cancel Button */}
               <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
                 <Text style={s.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
