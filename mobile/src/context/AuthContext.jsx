@@ -28,7 +28,8 @@ export function AuthProvider({ children }) {
     const res = await authService.login(email, password);
     const { token: t, user: u } = res.data;
     try {
-      await AsyncStorage.clear();
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
     } catch (e) {}
     await AsyncStorage.setItem('token', t);
     await AsyncStorage.setItem('user',  JSON.stringify(u));
@@ -41,7 +42,8 @@ export function AuthProvider({ children }) {
     const res = await authService.register(data);
     const { token: t, user: u } = res.data;
     try {
-      await AsyncStorage.clear();
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
     } catch (e) {}
     await AsyncStorage.setItem('token', t);
     await AsyncStorage.setItem('user',  JSON.stringify(u));
@@ -52,11 +54,9 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await AsyncStorage.clear();
-    } catch (e) {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
-    }
+    } catch (e) {}
     setToken(null);
     setUser(null);
   };

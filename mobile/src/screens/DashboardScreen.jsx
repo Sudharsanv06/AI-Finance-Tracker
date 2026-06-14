@@ -50,6 +50,7 @@ export default function DashboardScreen({ navigation }) {
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
 
+  const [focusedField, setFocusedField] = useState(null);
   const [startingBalances, setStartingBalances] = useState({
     'Main Account': 0,
     'Savings Account': 0,
@@ -58,20 +59,19 @@ export default function DashboardScreen({ navigation }) {
   });
   const [showEditBalancesModal, setShowEditBalancesModal] = useState(false);
   const [tempBalances, setTempBalances] = useState({
-    'Main Account': 0,
-    'Savings Account': 0,
-    'Credit Card': 0,
-    'Cash': 0,
+    'Main Account': '',
+    'Savings Account': '',
+    'Credit Card': '',
+    'Cash': '',
   });
 
   const loadBalances = useCallback(async () => {
     try {
       if (!user?._id) return;
-      const stored = await AsyncStorage.getItem(`starting_balances_${user._id}`);
+      const stored = await AsyncStorage.getItem(`balances_${user._id}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         setStartingBalances(parsed);
-        setTempBalances(parsed);
         setIsBalancesConfigured(true);
       } else {
         const defaults = {
@@ -81,7 +81,6 @@ export default function DashboardScreen({ navigation }) {
           'Cash': 0,
         };
         setStartingBalances(defaults);
-        setTempBalances(defaults);
         setIsBalancesConfigured(false);
       }
     } catch (err) {
@@ -92,7 +91,7 @@ export default function DashboardScreen({ navigation }) {
   const saveBalances = async (newBalances) => {
     try {
       if (!user?._id) return;
-      await AsyncStorage.setItem(`starting_balances_${user._id}`, JSON.stringify(newBalances));
+      await AsyncStorage.setItem(`balances_${user._id}`, JSON.stringify(newBalances));
       setStartingBalances(newBalances);
       setIsBalancesConfigured(true);
     } catch (err) {
@@ -148,7 +147,12 @@ export default function DashboardScreen({ navigation }) {
       'Cash': 0,
     };
     setStartingBalances(defaults);
-    setTempBalances(defaults);
+    setTempBalances({
+      'Main Account': '',
+      'Savings Account': '',
+      'Credit Card': '',
+      'Cash': '',
+    });
   }, [user?._id]);
 
   // Load balances and fetch dashboard data when screen is focused
@@ -327,7 +331,11 @@ export default function DashboardScreen({ navigation }) {
             ) : (
               <TouchableOpacity
                 onPress={() => {
-                  setTempBalances({ ...startingBalances });
+                  const initial = {};
+                  Object.keys(startingBalances).forEach(k => {
+                    initial[k] = startingBalances[k] === 0 ? '' : String(startingBalances[k]);
+                  });
+                  setTempBalances(initial);
                   setShowEditBalancesModal(true);
                 }}
                 style={s.setupBalanceBtn}
@@ -533,7 +541,11 @@ export default function DashboardScreen({ navigation }) {
               style={s.modalItem}
               onPress={() => {
                 setShowActionsModal(false);
-                setTempBalances({ ...startingBalances });
+                const initial = {};
+                Object.keys(startingBalances).forEach(k => {
+                  initial[k] = startingBalances[k] === 0 ? '' : String(startingBalances[k]);
+                });
+                setTempBalances(initial);
                 setShowEditBalancesModal(true);
               }}
             >
@@ -564,25 +576,53 @@ export default function DashboardScreen({ navigation }) {
                     {acc.toUpperCase()} (₹)
                   </Text>
                   <TextInput
-                    style={{
-                      backgroundColor: COLORS.white,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: COLORS.outlineVariant,
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      fontSize: 14,
-                      color: COLORS.onSurface,
-                      fontWeight: '600',
-                    }}
-                    keyboardType="numeric"
-                    value={String(tempBalances[acc])}
-                    onChangeText={(val) => {
+                    style={[
+                      {
+                        backgroundColor: COLORS.white,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: COLORS.outlineVariant,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        fontSize: 14,
+                        color: COLORS.onSurface,
+                        fontWeight: '600',
+                      },
+                      focusedField === acc && {
+                        borderColor: COLORS.teal,
+                        borderWidth: 2,
+                        shadowColor: COLORS.teal,
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 6,
+                        elevation: 4,
+                      }
+                    ]}
+                    value={tempBalances[acc]}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9.]/g, '');
+                      const parts = cleaned.split('.');
+                      const formatted = parts.length > 2
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned;
                       setTempBalances(prev => ({
                         ...prev,
-                        [acc]: parseFloat(val) || 0
+                        [acc]: formatted
                       }));
                     }}
+                    placeholder="0.00"
+                    placeholderTextColor={COLORS.outline}
+                    keyboardType="decimal-pad"
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField(acc)}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
                   />
                 </View>
               ))}
@@ -597,7 +637,11 @@ export default function DashboardScreen({ navigation }) {
                 marginTop: 10
               }}
               onPress={() => {
-                saveBalances(tempBalances);
+                const finalBalances = {};
+                Object.keys(tempBalances).forEach(k => {
+                  finalBalances[k] = parseFloat(tempBalances[k]) || 0;
+                });
+                saveBalances(finalBalances);
                 setShowEditBalancesModal(false);
               }}
             >

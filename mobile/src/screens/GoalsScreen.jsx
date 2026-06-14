@@ -1,13 +1,14 @@
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
-  ScrollView, Platform
+  ScrollView, Platform, KeyboardAvoidingView, SafeAreaView
 } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as goalService from '../services/goalService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { sendLocalNotification } from '../services/notificationService';
 
 function AddGoalModal({ visible, onClose, onSaved }) {
   const [title,        setTitle]        = useState('');
@@ -15,6 +16,7 @@ function AddGoalModal({ visible, onClose, onSaved }) {
   const [currentAmount,setCurrentAmount]= useState('0');
   const [icon,         setIcon]         = useState('🎯');
   const [loading,      setLoading]      = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleSubmit = async () => {
     if (!title.trim()) return Alert.alert('Error', 'Goal title is required');
@@ -41,7 +43,7 @@ function AddGoalModal({ visible, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={ms.container}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
         <View style={ms.header}>
           <Text style={ms.title}>New Savings Goal</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>
@@ -49,42 +51,112 @@ function AddGoalModal({ visible, onClose, onSaved }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-          <Text style={ms.label}>GOAL TITLE</Text>
-          <TextInput style={ms.input} value={title} onChangeText={setTitle}
-            placeholder="e.g. Emergency Fund" placeholderTextColor={COLORS.outline} />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+            <Text style={ms.label}>GOAL TITLE</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'title' && ms.inputFocused
+              ]}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Emergency Fund"
+              placeholderTextColor={COLORS.outline}
+              onFocus={() => setFocusedField('title')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
 
-          <Text style={ms.label}>TARGET AMOUNT (₹)</Text>
-          <TextInput style={ms.input} value={targetAmount} onChangeText={setTargetAmount}
-            placeholder="500000" placeholderTextColor={COLORS.outline} keyboardType="numeric" />
+            <Text style={ms.label}>TARGET AMOUNT (₹)</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'targetAmount' && ms.inputFocused
+              ]}
+              value={targetAmount === '' ? '' : String(targetAmount)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setTargetAmount(formatted);
+              }}
+              placeholder="500000"
+              placeholderTextColor={COLORS.outline}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('targetAmount')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
 
-          <Text style={ms.label}>INITIAL SAVINGS (₹)</Text>
-          <TextInput style={ms.input} value={currentAmount} onChangeText={setCurrentAmount}
-            placeholder="10000" placeholderTextColor={COLORS.outline} keyboardType="numeric" />
+            <Text style={ms.label}>INITIAL SAVINGS (₹)</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'currentAmount' && ms.inputFocused
+              ]}
+              value={currentAmount === '' ? '' : String(currentAmount)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setCurrentAmount(formatted);
+              }}
+              placeholder="10000"
+              placeholderTextColor={COLORS.outline}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('currentAmount')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
 
-          <Text style={ms.label}>ICON</Text>
-          <View style={ms.emojiGrid}>
-            {emojis.map((e) => (
-              <TouchableOpacity key={e} onPress={() => setIcon(e)}
-                style={[ms.emojiBtn, icon === e && ms.emojiBtnActive]}>
-                <Text style={ms.emojiText}>{e}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+            <Text style={ms.label}>ICON</Text>
+            <View style={ms.emojiGrid}>
+              {emojis.map((e) => (
+                <TouchableOpacity key={e} onPress={() => setIcon(e)}
+                  style={[ms.emojiBtn, icon === e && ms.emojiBtnActive]}>
+                  <Text style={ms.emojiText}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          <TouchableOpacity style={[ms.submitBtn, loading && { opacity: 0.6 }]}
-            onPress={handleSubmit} disabled={loading}>
-            {loading
-              ? <ActivityIndicator color={COLORS.white} />
-              : <Text style={ms.submitText}>+ Create Goal</Text>
-            }
-          </TouchableOpacity>
+            <TouchableOpacity style={[ms.submitBtn, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color={COLORS.white} />
+                : <Text style={ms.submitText}>+ Create Goal</Text>
+              }
+            </TouchableOpacity>
 
-          <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
-            <Text style={ms.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+            <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
+              <Text style={ms.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -92,6 +164,7 @@ function AddGoalModal({ visible, onClose, onSaved }) {
 function ContributeModal({ visible, onClose, onContribute, goal }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleSubmit = async () => {
     const parsedAmount = parseFloat(amount);
@@ -126,12 +199,32 @@ function ContributeModal({ visible, onClose, onContribute, goal }) {
             
             <Text style={s.modalLabel}>AMOUNT (₹)</Text>
             <TextInput
-              style={s.modalInput}
-              value={amount}
-              onChangeText={setAmount}
+              style={[
+                s.modalInput,
+                focusedField === 'amount' && ms.inputFocused
+              ]}
+              value={amount === '' ? '' : String(amount)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setAmount(formatted);
+              }}
               placeholder="e.g. 5000"
               placeholderTextColor={COLORS.outline}
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('amount')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
               autoFocus
             />
 
@@ -175,21 +268,24 @@ export default function GoalsScreen({ navigation }) {
     }
   }, []);
 
-  const hasFetched = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (hasFetched.current) return;
-      hasFetched.current = true;
-      fetchGoals();
-      return () => {
-        hasFetched.current = false;
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchGoals();
       };
+      load();
+      return () => { isActive = false; };
     }, [fetchGoals])
   );
 
   const handleContributeSubmit = async (goal, amount) => {
     try {
       await goalService.addContribution(goal._id, amount);
+      await sendLocalNotification(
+        '🎯 Goal Progress Updated',
+        `Contributed ${formatCurrency(amount)} to "${goal.title}"`
+      );
       fetchGoals();
       Alert.alert('Success', `Contributed ${formatCurrency(amount)} successfully!`);
     } catch (err) {
@@ -334,7 +430,6 @@ export default function GoalsScreen({ navigation }) {
 }
 
 const ms = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, padding: 20, paddingTop: 60 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },
   closeBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.surfaceContainerLow, alignItems: 'center', justifyContent: 'center' },
@@ -360,6 +455,15 @@ const ms = StyleSheet.create({
     color: COLORS.onSurfaceVariant,
     fontSize: 14,
     fontWeight: '700',
+  },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });
 
@@ -398,7 +502,7 @@ const s = StyleSheet.create({
   trendingText: { fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
 
   // List & Cards
-  list: { padding: 12, gap: 12, paddingBottom: 100 },
+  list: { padding: 12, gap: 12, paddingBottom: 120 },
   goalCard: {
     backgroundColor: COLORS.white,
     borderRadius: 16,

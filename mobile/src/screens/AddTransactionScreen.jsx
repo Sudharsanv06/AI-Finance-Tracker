@@ -155,7 +155,7 @@ export default function AddTransactionScreen({ navigation, route }) {
   useEffect(() => {
     const checkBalances = async () => {
       if (user?._id) {
-        const stored = await AsyncStorage.getItem(`starting_balances_${user._id}`);
+        const stored = await AsyncStorage.getItem(`balances_${user._id}`);
         setBalancesConfigured(!!stored);
       }
     };

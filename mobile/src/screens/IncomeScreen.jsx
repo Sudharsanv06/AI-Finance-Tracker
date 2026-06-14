@@ -2,8 +2,10 @@ import {
   View, Text, FlatList, StyleSheet,
   TouchableOpacity, Modal, TextInput,
   ActivityIndicator, Alert, RefreshControl,
+  KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import * as incomeService from '../services/incomeService';
 import { formatCurrency, formatDate, COLORS } from '../utils/helpers';
 
@@ -15,6 +17,7 @@ function AddIncomeModal({ visible, onClose, onSaved }) {
   const [amount,  setAmount]  = useState('');
   const [desc,    setDesc]    = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleSubmit = async () => {
     if (!amount || isNaN(amount)) return Alert.alert('Error', 'Valid amount required');
@@ -30,7 +33,7 @@ function AddIncomeModal({ visible, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={ms.container}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
         <View style={ms.header}>
           <Text style={ms.title}>Add Income</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>
@@ -38,35 +41,85 @@ function AddIncomeModal({ visible, onClose, onSaved }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={ms.label}>SOURCE</Text>
-        <View style={ms.sourceGrid}>
-          {SOURCES.map((src) => (
-            <TouchableOpacity key={src} onPress={() => setSource(src)}
-              style={[ms.srcBtn, source === src && ms.srcBtnActive]}>
-              <Text style={ms.srcIcon}>{SOURCE_ICONS[src]}</Text>
-              <Text style={[ms.srcText, source === src && ms.srcTextActive]}>
-                {src}
-              </Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView
+            contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={ms.label}>SOURCE</Text>
+            <View style={ms.sourceGrid}>
+              {SOURCES.map((src) => (
+                <TouchableOpacity key={src} onPress={() => setSource(src)}
+                  style={[ms.srcBtn, source === src && ms.srcBtnActive]}>
+                  <Text style={ms.srcIcon}>{SOURCE_ICONS[src]}</Text>
+                  <Text style={[ms.srcText, source === src && ms.srcTextActive]}>
+                    {src}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={ms.label}>AMOUNT (₹)</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'amount' && ms.inputFocused
+              ]}
+              value={amount === '' ? '' : String(amount)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setAmount(formatted);
+              }}
+              placeholder="0.00"
+              placeholderTextColor={COLORS.teal100}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('amount')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
+
+            <Text style={ms.label}>DESCRIPTION (OPTIONAL)</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'description' && ms.inputFocused
+              ]}
+              value={desc}
+              onChangeText={setDesc}
+              placeholder="e.g. June salary"
+              placeholderTextColor={COLORS.teal100}
+              onFocus={() => setFocusedField('description')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
+
+            <TouchableOpacity style={[ms.submitBtn, loading && { opacity: 0.6 }, { marginBottom: 20 }]}
+              onPress={handleSubmit} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color={COLORS.cream} />
+                : <Text style={ms.submitText}>+ Add Income</Text>
+              }
             </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={ms.label}>AMOUNT (₹)</Text>
-        <TextInput style={ms.input} value={amount} onChangeText={setAmount}
-          placeholder="50000" placeholderTextColor={COLORS.teal100} keyboardType="numeric" />
-
-        <Text style={ms.label}>DESCRIPTION (OPTIONAL)</Text>
-        <TextInput style={ms.input} value={desc} onChangeText={setDesc}
-          placeholder="e.g. June salary" placeholderTextColor={COLORS.teal100} />
-
-        <TouchableOpacity style={[ms.submitBtn, loading && { opacity: 0.6 }]}
-          onPress={handleSubmit} disabled={loading}>
-          {loading
-            ? <ActivityIndicator color={COLORS.cream} />
-            : <Text style={ms.submitText}>+ Add Income</Text>
-          }
-        </TouchableOpacity>
-      </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -90,7 +143,16 @@ export default function IncomeScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
+      };
+      load();
+      return () => { isActive = false; };
+    }, [fetchAll])
+  );
 
   const renderItem = ({ item }) => (
     <View style={s.row}>
@@ -163,7 +225,10 @@ export default function IncomeScreen() {
       <AddIncomeModal
         visible={showAdd}
         onClose={() => setShowAdd(false)}
-        onSaved={() => { setShowAdd(false); fetchAll(); }}
+        onSaved={() => {
+          setShowAdd(false);
+          fetchAll();
+        }}
       />
     </View>
   );
@@ -185,6 +250,15 @@ const ms = StyleSheet.create({
   input: { borderWidth: 1, borderColor: COLORS.outlineVariant, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.onSurface, backgroundColor: COLORS.background },
   submitBtn: { backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 16, alignItems: 'center', marginTop: 24 },
   submitText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
 });
 
 const s = StyleSheet.create({
@@ -199,7 +273,7 @@ const s = StyleSheet.create({
   summaryCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 16, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
   summaryValue: { fontSize: 13, fontWeight: '700', color: COLORS.secondary },
   summaryLabel: { fontSize: 10, color: COLORS.onSurfaceVariant, marginTop: 4, textAlign: 'center' },
-  list: { padding: 12, gap: 10, paddingBottom: 100 },
+  list: { padding: 12, gap: 12, paddingBottom: 120 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
   rowIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0, 108, 73, 0.05)', alignItems: 'center', justifyContent: 'center' },
   rowIconText: { fontSize: 20 },

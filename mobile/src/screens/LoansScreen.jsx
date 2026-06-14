@@ -1,13 +1,14 @@
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert, Modal, TextInput,
-  ScrollView,
+  ScrollView, KeyboardAvoidingView, Platform, SafeAreaView
 } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as loanService from '../services/loanService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { sendLocalNotification } from '../services/notificationService';
 
 function AddLoanModal({ visible, onClose, onSaved }) {
   const [title,         setTitle]         = useState('');
@@ -17,6 +18,7 @@ function AddLoanModal({ visible, onClose, onSaved }) {
   const [interestRate,  setInterestRate]  = useState('');
   const [tenureMonths,  setTenureMonths]  = useState('12');
   const [loading,       setLoading]       = useState(false);
+  const [focusedField,  setFocusedField]  = useState(null);
 
   const calcEMI = () => {
     if (!principal || !tenureMonths) return 0;
@@ -47,7 +49,7 @@ function AddLoanModal({ visible, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={ms.container}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
         <View style={ms.header}>
           <Text style={ms.title}>Add Loan</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>
@@ -55,66 +57,174 @@ function AddLoanModal({ visible, onClose, onSaved }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-          <Text style={ms.label}>TYPE</Text>
-          <View style={ms.typeRow}>
-            {[
-              { val: 'taken', label: '⬇️ Loan Taken', desc: 'I borrowed' },
-              { val: 'given', label: '⬆️ Loan Given', desc: 'I lent' },
-            ].map((t) => (
-              <TouchableOpacity key={t.val} onPress={() => setType(t.val)}
-                style={[ms.typeBtn, type === t.val && ms.typeBtnActive]}>
-                <Text style={ms.typeBtnLabel}>{t.label}</Text>
-                <Text style={ms.typeBtnDesc}>{t.desc}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={ms.label}>TITLE</Text>
-          <TextInput style={ms.input} value={title} onChangeText={setTitle}
-            placeholder="e.g. Home loan from SBI" placeholderTextColor={COLORS.outline} />
-
-          <Text style={ms.label}>{type === 'taken' ? 'BORROWED FROM' : 'LENT TO'}</Text>
-          <TextInput style={ms.input} value={loanFrom} onChangeText={setLoanFrom}
-            placeholder={type === 'taken' ? 'e.g. SBI Bank' : 'e.g. Ravi'} placeholderTextColor={COLORS.outline} />
-
-          <Text style={ms.label}>PRINCIPAL (₹)</Text>
-          <TextInput style={ms.input} value={principal} onChangeText={setPrincipal}
-            placeholder="500000" placeholderTextColor={COLORS.outline} keyboardType="numeric" />
-
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={ms.label}>INTEREST RATE (%)</Text>
-              <TextInput style={ms.input} value={interestRate} onChangeText={setInterestRate}
-                placeholder="8.5" placeholderTextColor={COLORS.outline} keyboardType="decimal-pad" />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+            <Text style={ms.label}>TYPE</Text>
+            <View style={ms.typeRow}>
+              {[
+                { val: 'taken', label: '⬇️ Loan Taken', desc: 'I borrowed' },
+                { val: 'given', label: '⬆️ Loan Given', desc: 'I lent' },
+              ].map((t) => (
+                <TouchableOpacity key={t.val} onPress={() => setType(t.val)}
+                  style={[ms.typeBtn, type === t.val && ms.typeBtnActive]}>
+                  <Text style={ms.typeBtnLabel}>{t.label}</Text>
+                  <Text style={ms.typeBtnDesc}>{t.desc}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={ms.label}>TENURE (MONTHS)</Text>
-              <TextInput style={ms.input} value={tenureMonths} onChangeText={setTenureMonths}
-                placeholder="24" placeholderTextColor={COLORS.outline} keyboardType="numeric" />
+
+            <Text style={ms.label}>TITLE</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'title' && ms.inputFocused
+              ]}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Home loan from SBI"
+              placeholderTextColor={COLORS.outline}
+              onFocus={() => setFocusedField('title')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
+
+            <Text style={ms.label}>{type === 'taken' ? 'BORROWED FROM' : 'LENT TO'}</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'loanFrom' && ms.inputFocused
+              ]}
+              value={loanFrom}
+              onChangeText={setLoanFrom}
+              placeholder={type === 'taken' ? 'e.g. SBI Bank' : 'e.g. Ravi'}
+              placeholderTextColor={COLORS.outline}
+              onFocus={() => setFocusedField('loanFrom')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
+
+            <Text style={ms.label}>PRINCIPAL (₹)</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'principal' && ms.inputFocused
+              ]}
+              value={principal === '' ? '' : String(principal)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setPrincipal(formatted);
+              }}
+              placeholder="500000"
+              placeholderTextColor={COLORS.outline}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('principal')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={ms.label}>INTEREST RATE (%)</Text>
+                <TextInput
+                  style={[
+                    ms.input,
+                    focusedField === 'interestRate' && ms.inputFocused
+                  ]}
+                  value={interestRate === '' ? '' : String(interestRate)}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9.]/g, '');
+                    const parts = cleaned.split('.');
+                    const formatted = parts.length > 2
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : cleaned;
+                    setInterestRate(formatted);
+                  }}
+                  placeholder="8.5"
+                  placeholderTextColor={COLORS.outline}
+                  keyboardType="decimal-pad"
+                  returnKeyType="done"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  blurOnSubmit={false}
+                  caretHidden={false}
+                  selection={undefined}
+                  onFocus={() => setFocusedField('interestRate')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={ms.label}>TENURE (MONTHS)</Text>
+                <TextInput
+                  style={[
+                    ms.input,
+                    focusedField === 'tenureMonths' && ms.inputFocused
+                  ]}
+                  value={tenureMonths === '' ? '' : String(tenureMonths)}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9.]/g, '');
+                    const parts = cleaned.split('.');
+                    const formatted = parts.length > 2
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : cleaned;
+                    setTenureMonths(formatted);
+                  }}
+                  placeholder="24"
+                  placeholderTextColor={COLORS.outline}
+                  keyboardType="decimal-pad"
+                  returnKeyType="done"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  blurOnSubmit={false}
+                  caretHidden={false}
+                  selection={undefined}
+                  onFocus={() => setFocusedField('tenureMonths')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
+                />
+              </View>
             </View>
-          </View>
 
-          {emi > 0 && principal && (
-            <View style={ms.emiPreview}>
-              <Text style={ms.emiLabel}>Estimated Monthly EMI</Text>
-              <Text style={ms.emiValue}>{formatCurrency(emi)}</Text>
-            </View>
-          )}
+            {emi > 0 && principal && (
+              <View style={ms.emiPreview}>
+                <Text style={ms.emiLabel}>Estimated Monthly EMI</Text>
+                <Text style={ms.emiValue}>{formatCurrency(emi)}</Text>
+              </View>
+            )}
 
-          <TouchableOpacity style={[ms.submitBtn, loading && { opacity: 0.6 }]}
-            onPress={handleSubmit} disabled={loading}>
-            {loading
-              ? <ActivityIndicator color={COLORS.white} />
-              : <Text style={ms.submitText}>+ Add Loan</Text>
-            }
-          </TouchableOpacity>
+            <TouchableOpacity style={[ms.submitBtn, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color={COLORS.white} />
+                : <Text style={ms.submitText}>+ Add Loan</Text>
+              }
+            </TouchableOpacity>
 
-          <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
-            <Text style={ms.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+            <TouchableOpacity style={[ms.cancelBtn, { marginBottom: 20 }]} onPress={onClose}>
+              <Text style={ms.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -122,6 +232,7 @@ function AddLoanModal({ visible, onClose, onSaved }) {
 function RepaymentModal({ visible, onClose, onPay, loan }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   useEffect(() => {
     if (loan) {
@@ -162,12 +273,32 @@ function RepaymentModal({ visible, onClose, onPay, loan }) {
             
             <Text style={s.modalLabel}>REPAYMENT AMOUNT (₹)</Text>
             <TextInput
-              style={s.modalInput}
-              value={amount}
-              onChangeText={setAmount}
+              style={[
+                s.modalInput,
+                focusedField === 'amount' && ms.inputFocused
+              ]}
+              value={amount === '' ? '' : String(amount)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setAmount(formatted);
+              }}
               placeholder="e.g. 5000"
               placeholderTextColor={COLORS.outline}
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('amount')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
               autoFocus
             />
 
@@ -212,21 +343,24 @@ export default function LoansScreen({ navigation }) {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  const hasFetched = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (hasFetched.current) return;
-      hasFetched.current = true;
-      fetchAll();
-      return () => {
-        hasFetched.current = false;
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
       };
+      load();
+      return () => { isActive = false; };
     }, [fetchAll])
   );
 
   const handleRepaymentSubmit = async (loan, amount) => {
     try {
       await loanService.addPayment(loan._id, { amount });
+      await sendLocalNotification(
+        '💳 EMI Payment Recorded',
+        `Repayment of ${formatCurrency(amount)} recorded for ${loan.title}`
+      );
       fetchAll();
       Alert.alert('✅', 'Payment recorded successfully');
     } catch (err) {
@@ -414,6 +548,15 @@ const ms = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
 });
 
 const s = StyleSheet.create({
@@ -429,7 +572,7 @@ const s = StyleSheet.create({
   summaryCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 16, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
   summaryVal: { fontSize: 12, fontWeight: '700', color: COLORS.onSurface },
   summaryLab: { fontSize: 10, color: COLORS.onSurfaceVariant, marginTop: 4, textAlign: 'center' },
-  list: { padding: 12, gap: 12, paddingBottom: 100 },
+  list: { padding: 12, gap: 12, paddingBottom: 120 },
   loanCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
   loanTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   loanTitle: { fontSize: 15, fontWeight: '600', color: COLORS.onSurface },

@@ -1,12 +1,13 @@
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, Switch, Platform
+  ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, Switch, Platform, KeyboardAvoidingView
 } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import billService from '../services/billService';
 import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { sendLocalNotification, scheduleBillReminder } from '../services/notificationService';
 
 const BILL_CATEGORIES = [
   'Rent', 'Electricity', 'Water', 'Internet',
@@ -46,8 +47,9 @@ export default function BillRemindersScreen({ navigation }) {
   const [autoPay, setAutoPay] = useState(false);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
-  const fetchBills = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const res = await billService.getBills();
@@ -64,16 +66,15 @@ export default function BillRemindersScreen({ navigation }) {
     }
   }, []);
 
-  const hasFetched = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (hasFetched.current) return;
-      hasFetched.current = true;
-      fetchBills();
-      return () => {
-        hasFetched.current = false;
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
       };
-    }, [fetchBills])
+      load();
+      return () => { isActive = false; };
+    }, [fetchAll])
   );
 
   const handleOpenModal = (bill = null) => {
@@ -101,6 +102,12 @@ export default function BillRemindersScreen({ navigation }) {
     setShowModal(true);
   };
 
+      fetchBills();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update payment status');
+    }
+  };
+
   const handleTogglePaid = async (bill) => {
     try {
       if (!bill.isDueThisMonth || bill.isPaid) {
@@ -108,7 +115,7 @@ export default function BillRemindersScreen({ navigation }) {
       } else {
         await billService.markPaid(bill._id);
       }
-      fetchBills();
+      fetchAll();
     } catch (err) {
       Alert.alert('Error', 'Failed to update payment status');
     }
@@ -135,9 +142,14 @@ export default function BillRemindersScreen({ navigation }) {
         await billService.updateBill(editingBill._id, payload);
       } else {
         await billService.createBill(payload);
+        await sendLocalNotification(
+          '📅 Bill Reminder Created',
+          `Reminder for "${payload.title}" of ₹${payload.amount} has been added.`
+        );
+        await scheduleBillReminder(payload.title, payload.amount, 3);
       }
       setShowModal(false);
-      fetchBills();
+      fetchAll();
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to save bill reminder');
     } finally {
@@ -157,7 +169,7 @@ export default function BillRemindersScreen({ navigation }) {
           onPress: async () => {
             try {
               await billService.deleteBill(id);
-              fetchBills();
+              fetchAll();
             } catch (err) {
               Alert.alert('Error', 'Failed to delete bill');
             }
@@ -302,7 +314,7 @@ export default function BillRemindersScreen({ navigation }) {
 
       {/* Set/Edit Bill Form Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
-        <View style={s.modalContainer}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>{editingBill ? 'Edit Bill' : 'Add Bill Reminder'}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -310,122 +322,178 @@ export default function BillRemindersScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {/* Category Select Grid */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Category</Text>
-              <View style={s.categoryGrid}>
-                {BILL_CATEGORIES.map((c) => (
-                  <TouchableOpacity
-                    key={c}
-                    style={[s.categoryGridItem, category === c && s.categoryGridActiveItem]}
-                    onPress={() => setCategory(c)}
-                  >
-                    <Text style={{ fontSize: 18 }}>{CATEGORY_ICONS[c]}</Text>
-                    <Text style={[s.categoryGridItemText, category === c && { color: COLORS.white }]}>
-                      {c}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {/* Category Select Grid */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Category</Text>
+                <View style={s.categoryGrid}>
+                  {BILL_CATEGORIES.map((c) => (
+                    <TouchableOpacity
+                      key={c}
+                      style={[s.categoryGridItem, category === c && s.categoryGridActiveItem]}
+                      onPress={() => setCategory(c)}
+                    >
+                      <Text style={{ fontSize: 18 }}>{CATEGORY_ICONS[c]}</Text>
+                      <Text style={[s.categoryGridItemText, category === c && { color: COLORS.white }]}>
+                        {c}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Bill Title */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Bill Title</Text>
-              <TextInput
-                style={s.textInput}
-                placeholder="e.g. Broadband internet"
-                placeholderTextColor={COLORS.outline}
-                value={title}
-                onChangeText={setTitle}
-              />
-            </View>
-
-            {/* Amount & Due Date Day */}
-            <View style={s.formRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Amount (₹)</Text>
+              {/* Bill Title */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Bill Title</Text>
                 <TextInput
-                  style={s.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 999"
+                  style={[
+                    s.textInput,
+                    focusedField === 'title' && s.inputFocused
+                  ]}
+                  placeholder="e.g. Broadband internet"
                   placeholderTextColor={COLORS.outline}
-                  value={amount}
-                  onChangeText={setAmount}
+                  value={title}
+                  onChangeText={setTitle}
+                  onFocus={() => setFocusedField('title')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Due on Day (1-28)</Text>
-                <TextInput
-                  style={s.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 15"
-                  placeholderTextColor={COLORS.outline}
-                  value={dueDate}
-                  onChangeText={setDueDate}
+
+              {/* Amount & Due Date Day */}
+              <View style={s.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.inputLabel}>Amount (₹)</Text>
+                  <TextInput
+                    style={[
+                      s.textInput,
+                      focusedField === 'amount' && s.inputFocused
+                    ]}
+                    keyboardType="decimal-pad"
+                    placeholder="e.g. 999"
+                    placeholderTextColor={COLORS.outline}
+                    value={amount === '' ? '' : String(amount)}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9.]/g, '');
+                      const parts = cleaned.split('.');
+                      const formatted = parts.length > 2
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned;
+                      setAmount(formatted);
+                    }}
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField('amount')}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.inputLabel}>Due on Day (1-28)</Text>
+                  <TextInput
+                    style={[
+                      s.textInput,
+                      focusedField === 'dueDate' && s.inputFocused
+                    ]}
+                    keyboardType="number-pad"
+                    placeholder="e.g. 15"
+                    placeholderTextColor={COLORS.outline}
+                    value={dueDate === '' ? '' : String(dueDate)}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, '');
+                      setDueDate(cleaned);
+                    }}
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField('dueDate')}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
+                  />
+                </View>
+              </View>
+
+              {/* Frequency Select */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Frequency</Text>
+                <View style={s.freqRow}>
+                  {['monthly', 'quarterly', 'yearly'].map((f) => (
+                    <TouchableOpacity
+                      key={f}
+                      style={[s.freqBtn, frequency === f && s.freqBtnActive]}
+                      onPress={() => setFrequency(f)}
+                    >
+                      <Text style={[s.freqText, frequency === f && { color: COLORS.white }]}>
+                        {f}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Auto Pay Checkbox */}
+              <View style={s.switchRow}>
+                <View>
+                  <Text style={s.switchTitle}>Auto Pay Enabled</Text>
+                  <Text style={s.switchSub}>App marks this bill as auto-paid on due date</Text>
+                </View>
+                <Switch
+                  value={autoPay}
+                  onValueChange={setAutoPay}
+                  trackColor={{ false: COLORS.outlineVariant, true: COLORS.primary }}
                 />
               </View>
-            </View>
 
-            {/* Frequency Select */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Frequency</Text>
-              <View style={s.freqRow}>
-                {['monthly', 'quarterly', 'yearly'].map((f) => (
-                  <TouchableOpacity
-                    key={f}
-                    style={[s.freqBtn, frequency === f && s.freqBtnActive]}
-                    onPress={() => setFrequency(f)}
-                  >
-                    <Text style={[s.freqText, frequency === f && { color: COLORS.white }]}>
-                      {f}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              {/* Notes */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={s.inputLabel}>Notes</Text>
+                <TextInput
+                  style={[
+                    s.textInput,
+                    focusedField === 'notes' && s.inputFocused
+                  ]}
+                  placeholder="Add optional notes..."
+                  placeholderTextColor={COLORS.outline}
+                  value={notes}
+                  onChangeText={setNotes}
+                  onFocus={() => setFocusedField('notes')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
+                />
               </View>
-            </View>
 
-            {/* Auto Pay Checkbox */}
-            <View style={s.switchRow}>
-              <View>
-                <Text style={s.switchTitle}>Auto Pay Enabled</Text>
-                <Text style={s.switchSub}>App marks this bill as auto-paid on due date</Text>
-              </View>
-              <Switch
-                value={autoPay}
-                onValueChange={setAutoPay}
-                trackColor={{ false: COLORS.outlineVariant, true: COLORS.primary }}
-              />
-            </View>
+              {/* Save Button */}
+              <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={s.submitBtnText}>Save Bill Reminder</Text>
+                )}
+              </TouchableOpacity>
 
-            {/* Notes */}
-            <View style={{ marginBottom: 24 }}>
-              <Text style={s.inputLabel}>Notes</Text>
-              <TextInput
-                style={s.textInput}
-                placeholder="Add optional notes..."
-                placeholderTextColor={COLORS.outline}
-                value={notes}
-                onChangeText={setNotes}
-              />
-            </View>
-
-            {/* Save Button */}
-            <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
-              {saving ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={s.submitBtnText}>Save Bill Reminder</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Cancel Button */}
-            <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+              {/* Cancel Button */}
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -451,7 +519,7 @@ const s = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },
   addBtn: { padding: 4 },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: 120 },
 
   // Metrics
   metricsRow: {
@@ -795,5 +863,14 @@ const s = StyleSheet.create({
     color: COLORS.onSurfaceVariant,
     marginTop: 4,
     textAlign: 'center',
+  },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

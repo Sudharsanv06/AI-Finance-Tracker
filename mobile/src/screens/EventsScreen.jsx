@@ -1,9 +1,10 @@
 import {
   View, Text, FlatList, StyleSheet,
   TouchableOpacity, Modal, TextInput,
-  ActivityIndicator, Alert, RefreshControl, SafeAreaView, ScrollView
+  ActivityIndicator, Alert, RefreshControl, SafeAreaView, ScrollView,
+  KeyboardAvoidingView, Platform
 } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth }  from '../context/AuthContext';
 import api          from '../services/api';
@@ -116,6 +117,7 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
   const [status,      setStatus]      = useState('active');
   const [loading,     setLoading]     = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -166,7 +168,7 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={ms.container}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
         <View style={ms.header}>
           <Text style={ms.title}>{event ? 'Edit Event' : 'New Event'}</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>
@@ -174,78 +176,111 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-          <Text style={ms.label}>EVENT NAME *</Text>
-          <TextInput
-            style={ms.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. Annual Conference 2025"
-            placeholderTextColor={COLORS.outline}
-          />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Text style={ms.label}>EVENT NAME *</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'name' && ms.inputFocused
+              ]}
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. Annual Conference 2025"
+              placeholderTextColor={COLORS.outline}
+              onFocus={() => setFocusedField('name')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
 
-          <Text style={ms.label}>TOTAL BUDGET (₹) *</Text>
-          <TextInput
-            style={ms.input}
-            value={totalBudget}
-            onChangeText={setTotalBudget}
-            placeholder="e.g. 100000"
-            placeholderTextColor={COLORS.outline}
-            keyboardType="numeric"
-          />
+            <Text style={ms.label}>TOTAL BUDGET (₹) *</Text>
+            <TextInput
+              style={[
+                ms.input,
+                focusedField === 'totalBudget' && ms.inputFocused
+              ]}
+              value={totalBudget === '' ? '' : String(totalBudget)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setTotalBudget(formatted);
+              }}
+              placeholder="e.g. 100000"
+              placeholderTextColor={COLORS.outline}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('totalBudget')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
 
-          <Text style={ms.label}>CATEGORY</Text>
-          <View style={ms.categoryGrid}>
-            {CATEGORIES.map((c) => (
-              <TouchableOpacity
-                key={c}
-                onPress={() => setCategory(c)}
-                style={[ms.catBtn, category === c && ms.catBtnActive]}
-              >
-                <Text style={[ms.catText, category === c && ms.catTextActive]}>{c}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+            <Text style={ms.label}>CATEGORY</Text>
+            <View style={ms.categoryGrid}>
+              {CATEGORIES.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  onPress={() => setCategory(c)}
+                  style={[ms.catBtn, category === c && ms.catBtnActive]}
+                >
+                  <Text style={[ms.catText, category === c && ms.catTextActive]}>{c}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          <Text style={ms.label}>DATE</Text>
-          <TouchableOpacity style={ms.selectorBtn} onPress={() => setShowDatePicker(true)}>
-            <Text style={ms.selectorBtnText}>
-              {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </Text>
-            <Ionicons name="calendar-outline" size={16} color={COLORS.outline} />
-          </TouchableOpacity>
+            <Text style={ms.label}>DATE</Text>
+            <TouchableOpacity style={ms.selectorBtn} onPress={() => setShowDatePicker(true)}>
+              <Text style={ms.selectorBtnText}>
+                {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </Text>
+              <Ionicons name="calendar-outline" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
 
-          <Text style={ms.label}>STATUS</Text>
-          <View style={ms.statusRow}>
-            {['active', 'upcoming', 'completed', 'draft', 'cancelled'].map((s) => (
-              <TouchableOpacity
-                key={s}
-                onPress={() => setStatus(s)}
-                style={[ms.statusBtn, status === s && ms.statusBtnActive]}
-              >
-                <Text style={[ms.statusText, status === s && ms.statusTextActive]}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+            <Text style={ms.label}>STATUS</Text>
+            <View style={ms.statusRow}>
+              {['active', 'upcoming', 'completed', 'draft', 'cancelled'].map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  onPress={() => setStatus(s)}
+                  style={[ms.statusBtn, status === s && ms.statusBtnActive]}
+                >
+                  <Text style={[ms.statusText, status === s && ms.statusTextActive]}>
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          <TouchableOpacity
-            style={[ms.submitBtn, loading && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={ms.submitText}>{event ? 'Update Event' : 'Create Event'}</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[ms.submitBtn, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={ms.submitText}>{event ? 'Update Event' : 'Create Event'}</Text>
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
-            <Text style={ms.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
+              <Text style={ms.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
         <CustomDatePickerModal
           visible={showDatePicker}
@@ -355,7 +390,7 @@ export default function EventsScreen() {
   const [editingEvent, setEditingEvent]   = useState(null);
   const [filterStatus, setFilterStatus]   = useState('All');
 
-  const fetchEvents = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
       const res = await api.get('/events');
       setEvents(res.data?.data?.events || []);
@@ -363,16 +398,15 @@ export default function EventsScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  const hasFetched = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (hasFetched.current) return;
-      hasFetched.current = true;
-      fetchEvents();
-      return () => {
-        hasFetched.current = false;
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
       };
-    }, [fetchEvents])
+      load();
+      return () => { isActive = false; };
+    }, [fetchAll])
   );
 
   const handleEdit = (event) => {
@@ -392,7 +426,7 @@ export default function EventsScreen() {
           onPress: async () => {
             try {
               await api.delete(`/events/${id}`);
-              fetchEvents();
+              fetchAll();
               Alert.alert('Deleted', 'Event deleted successfully!');
             } catch (err) {
               Alert.alert('Error', err.response?.data?.message || 'Failed to delete');
@@ -482,7 +516,7 @@ export default function EventsScreen() {
         contentContainerStyle={s.list}
         refreshControl={
           <RefreshControl refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); fetchEvents(); }}
+            onRefresh={() => { setRefreshing(true); fetchAll(); }}
             tintColor={COLORS.primary} />
         }
         ListEmptyComponent={
@@ -506,7 +540,7 @@ export default function EventsScreen() {
         visible={showForm}
         event={editingEvent}
         onClose={() => setShowForm(false)}
-        onSaved={() => { setShowForm(false); fetchEvents(); }}
+        onSaved={() => { setShowForm(false); fetchAll(); }}
       />
     </View>
   );
@@ -530,7 +564,6 @@ const ds = StyleSheet.create({
 });
 
 const ms = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white, padding: 20, paddingTop: 60 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title:    { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },
   closeBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.surfaceContainerLow, alignItems: 'center', justifyContent: 'center' },
@@ -577,6 +610,15 @@ const ms = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700'
   },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
 });
 
 const s = StyleSheet.create({
@@ -596,7 +638,7 @@ const s = StyleSheet.create({
   filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   filterText: { fontSize: 12, fontWeight: '600', color: COLORS.onSurfaceVariant },
   filterTextActive: { color: COLORS.white },
-  list: { padding: 12, gap: 12, paddingBottom: 100 },
+  list: { padding: 12, gap: 12, paddingBottom: 120 },
   card: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
   cardTop:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   cardTitle: { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },

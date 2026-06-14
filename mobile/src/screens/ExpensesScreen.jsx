@@ -2,15 +2,17 @@ import {
   View, Text, FlatList, StyleSheet,
   TouchableOpacity, TextInput, Modal,
   ActivityIndicator, Alert, RefreshControl, ScrollView,
-  SafeAreaView
+  SafeAreaView, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth }           from '../context/AuthContext';
 import * as expenseService   from '../services/expenseService';
 import * as incomeService    from '../services/incomeService';
 import api                   from '../services/api';
 import { formatCurrency, formatDate, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { sendLocalNotification } from '../services/notificationService';
 
 const STATUS_COLOR = {
   Pending:  { bg: 'rgba(130, 81, 0, 0.08)', text: '#825100' },
@@ -140,6 +142,7 @@ function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
   const [loading,       setLoading]       = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCatModal,  setShowCatModal]  = useState(false);
+  const [focusedField,  setFocusedField]  = useState(null);
 
   const isIncome = expense?.type === 'Income';
 
@@ -200,7 +203,7 @@ function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={ms.container}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
         <View style={ms.header}>
           <Text style={ms.title}>{expense ? (isIncome ? 'Edit Income' : 'Edit Transaction') : 'Add Expense'}</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>
@@ -208,93 +211,130 @@ function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-          <Text style={ms.label}>DESCRIPTION</Text>
-          <TextInput
-            style={ms.textInput}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="e.g. Vegetables & Grocery"
-            placeholderTextColor={COLORS.outline}
-          />
-
-          <Text style={ms.label}>AMOUNT (₹)</Text>
-          <TextInput
-            style={ms.textInput}
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="e.g. 750"
-            placeholderTextColor={COLORS.outline}
-            keyboardType="numeric"
-          />
-
-          <Text style={ms.label}>CATEGORY</Text>
-          <TouchableOpacity style={ms.selectorBtn} onPress={() => setShowCatModal(true)}>
-            <Text style={ms.selectorBtnText}>{category}</Text>
-            <Ionicons name="chevron-down" size={16} color={COLORS.outline} />
-          </TouchableOpacity>
-
-          {!isIncome && (
-            <>
-              <Text style={ms.label}>PAYMENT METHOD</Text>
-              <View style={ms.methodRow}>
-                {PAYMENT_METHODS.map((m) => (
-                  <TouchableOpacity
-                    key={m}
-                    onPress={() => setPaymentMethod(m)}
-                    style={[ms.methodBtn, paymentMethod === m && ms.methodBtnActive]}
-                  >
-                    <Text style={[ms.methodBtnText, paymentMethod === m && ms.methodBtnActiveText]}>{m}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
-
-          <Text style={ms.label}>DATE</Text>
-          <TouchableOpacity style={ms.selectorBtn} onPress={() => setShowDatePicker(true)}>
-            <Text style={ms.selectorBtnText}>
-              {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </Text>
-            <Ionicons name="calendar-outline" size={16} color={COLORS.outline} />
-          </TouchableOpacity>
-
-          {!isIncome && (
-            <>
-              <Text style={ms.label}>TRANSACTION STATUS</Text>
-              <View style={ms.statusRow}>
-                {[
-                  { val: 'Paid', label: '✅ Completed / Paid' },
-                  { val: 'Pending', label: '⏳ Still Pending' }
-                ].map((s) => (
-                  <TouchableOpacity
-                    key={s.val}
-                    onPress={() => setStatus(s.val)}
-                    style={[ms.statusBtn, status === s.val && ms.statusBtnActive]}
-                  >
-                    <Text style={[ms.statusBtnText, status === s.val && ms.statusBtnActiveText]}>{s.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
-
-          <TouchableOpacity
-            style={[ms.submitBtn, loading && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={loading}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView
+            contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={ms.submitText}>{expense ? 'Update Transaction' : 'Add Transaction'}</Text>
-            )}
-          </TouchableOpacity>
+            <Text style={ms.label}>DESCRIPTION</Text>
+            <TextInput
+              style={[
+                ms.textInput,
+                focusedField === 'description' && ms.inputFocused
+              ]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="e.g. Vegetables & Grocery"
+              placeholderTextColor={COLORS.outline}
+              onFocus={() => setFocusedField('description')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
 
-          <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
-            <Text style={ms.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            <Text style={ms.label}>AMOUNT (₹)</Text>
+            <TextInput
+              style={[
+                ms.textInput,
+                focusedField === 'amount' && ms.inputFocused
+              ]}
+              value={amount === '' ? '' : String(amount)}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                const formatted = parts.length > 2
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : cleaned;
+                setAmount(formatted);
+              }}
+              placeholder="0.00"
+              placeholderTextColor={COLORS.outline}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              caretHidden={false}
+              selection={undefined}
+              onFocus={() => setFocusedField('amount')}
+              onBlur={() => setFocusedField(null)}
+              cursorColor={COLORS.teal}
+              selectionColor={COLORS.teal + '40'}
+            />
+
+            <Text style={ms.label}>CATEGORY</Text>
+            <TouchableOpacity style={ms.selectorBtn} onPress={() => setShowCatModal(true)}>
+              <Text style={ms.selectorBtnText}>{category}</Text>
+              <Ionicons name="chevron-down" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            {!isIncome && (
+              <>
+                <Text style={ms.label}>PAYMENT METHOD</Text>
+                <View style={ms.methodRow}>
+                  {PAYMENT_METHODS.map((m) => (
+                    <TouchableOpacity
+                      key={m}
+                      onPress={() => setPaymentMethod(m)}
+                      style={[ms.methodBtn, paymentMethod === m && ms.methodBtnActive]}
+                    >
+                      <Text style={[ms.methodBtnText, paymentMethod === m && ms.methodBtnActiveText]}>{m}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <Text style={ms.label}>DATE</Text>
+            <TouchableOpacity style={ms.selectorBtn} onPress={() => setShowDatePicker(true)}>
+              <Text style={ms.selectorBtnText}>
+                {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </Text>
+              <Ionicons name="calendar-outline" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            {!isIncome && (
+              <>
+                <Text style={ms.label}>TRANSACTION STATUS</Text>
+                <View style={ms.statusRow}>
+                  {[
+                    { val: 'Paid', label: '✅ Completed / Paid' },
+                    { val: 'Pending', label: '⏳ Still Pending' }
+                  ].map((s) => (
+                    <TouchableOpacity
+                      key={s.val}
+                      onPress={() => setStatus(s.val)}
+                      style={[ms.statusBtn, status === s.val && ms.statusBtnActive]}
+                    >
+                      <Text style={[ms.statusBtnText, status === s.val && ms.statusBtnActiveText]}>{s.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <TouchableOpacity
+              style={[ms.submitBtn, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={ms.submitText}>{expense ? 'Update Transaction' : 'Add Transaction'}</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[ms.cancelBtn, { marginBottom: 20 }]} onPress={onClose}>
+              <Text style={ms.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Categories selector sub-modal */}
         <Modal visible={showCatModal} transparent animationType="slide">
@@ -346,7 +386,7 @@ export default function ExpensesScreen({ navigation }) {
   const [editingExpense, setEditingExpense] = useState(null);
   const [filterStatus, setFilterStatus] = useState('All');
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
       const [expRes, incRes] = await Promise.all([
         expenseService.getExpenses(),
@@ -375,7 +415,30 @@ export default function ExpensesScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
+      };
+      load();
+      return () => { isActive = false; };
+    }, [fetchAll])
+  );
+
+  const handleApprove = async (id) => {
+    try {
+      await expenseService.approveExpense(id);
+      await sendLocalNotification(
+        '✅ Expense Approved',
+        'Your expense has been approved'
+      );
+      fetchAll();
+      Alert.alert('Approved', 'Expense approved successfully!');
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Failed to approve');
+    }
+  };
 
   const handleEdit = (expense) => {
     setEditingExpense(expense);
@@ -398,7 +461,7 @@ export default function ExpensesScreen({ navigation }) {
               } else {
                 await expenseService.deleteExpense(item._id);
               }
-              fetchExpenses();
+              fetchAll();
               Alert.alert('Deleted', 'Transaction deleted successfully!');
             } catch (err) {
               Alert.alert('Error', err.response?.data?.message || 'Failed to delete');
@@ -442,6 +505,13 @@ export default function ExpensesScreen({ navigation }) {
         </View>
 
         <View style={s.actionRow}>
+          {(user?.role === 'Approver' || user?.role === 'FinanceAdmin') && item.approvalStatus === 'Pending' && item.type !== 'Income' && (
+            <TouchableOpacity
+              style={[s.actionBtn, { backgroundColor: 'rgba(16, 185, 129, 0.05)' }]}
+              onPress={() => handleApprove(item._id)}>
+              <Text style={[s.actionText, { color: '#006c49' }]}>✓ Approve</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[s.actionBtn, { backgroundColor: COLORS.surfaceContainerLow }]}
             onPress={() => handleEdit(item)}>
@@ -499,7 +569,7 @@ export default function ExpensesScreen({ navigation }) {
         contentContainerStyle={s.list}
         refreshControl={
           <RefreshControl refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); fetchExpenses(); }}
+            onRefresh={() => { setRefreshing(true); fetchAll(); }}
             tintColor={COLORS.teal} />
         }
         ListEmptyComponent={
@@ -514,7 +584,11 @@ export default function ExpensesScreen({ navigation }) {
         visible={showForm}
         expense={editingExpense}
         onClose={() => setShowForm(false)}
-        onSaved={() => { setShowForm(false); fetchExpenses(); }}
+        onSaved={() => {
+          setShowForm(false);
+          setEditingExpense(null);
+          fetchAll();
+        }}
       />
     </View>
   );
@@ -658,7 +732,16 @@ const ms = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.onSurface
-  }
+  },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
 });
 
 const s = StyleSheet.create({
@@ -674,7 +757,7 @@ const s = StyleSheet.create({
   filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   filterText: { fontSize: 11, fontWeight: '600', color: COLORS.onSurfaceVariant },
   filterTextActive: { color: COLORS.white },
-  list: { padding: 12, gap: 10, paddingBottom: 100 },
+  list: { padding: 12, gap: 12, paddingBottom: 120 },
   expCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
   expTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   expInfo: { flex: 1, marginRight: 10 },

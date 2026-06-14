@@ -1,8 +1,8 @@
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView
+  ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, KeyboardAvoidingView, Platform
 } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import investmentService from '../services/investmentService';
 import { formatCurrency, formatDate, COLORS } from '../utils/helpers';
@@ -52,6 +52,7 @@ export default function InvestmentsScreen({ navigation }) {
   const [status, setStatus] = useState('active'); // 'active' | 'matured' | 'withdrawn'
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -74,15 +75,14 @@ export default function InvestmentsScreen({ navigation }) {
     }
   }, [filterType, filterStatus]);
 
-  const hasFetched = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (hasFetched.current) return;
-      hasFetched.current = true;
-      fetchAll();
-      return () => {
-        hasFetched.current = false;
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
       };
+      load();
+      return () => { isActive = false; };
     }, [fetchAll])
   );
 
@@ -339,7 +339,7 @@ export default function InvestmentsScreen({ navigation }) {
 
       {/* Set/Edit Investment Form Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet">
-        <View style={s.modalContainer}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>{editingInvestment ? 'Edit Investment' : 'Add Investment'}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -347,158 +347,265 @@ export default function InvestmentsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {/* Investment Type Selection */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Investment Type</Text>
-              <View style={s.categoryGrid}>
-                {TYPES.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[s.categoryGridItem, type === t && s.categoryGridActiveItem]}
-                    onPress={() => setType(t)}
-                  >
-                    <Text style={{ fontSize: 18 }}>{TYPE_ICONS[t]}</Text>
-                    <Text style={[s.categoryGridItemText, type === t && { color: COLORS.white }]}>
-                      {t}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {/* Investment Type Selection */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Investment Type</Text>
+                <View style={s.categoryGrid}>
+                  {TYPES.map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[s.categoryGridItem, type === t && s.categoryGridActiveItem]}
+                      onPress={() => setType(t)}
+                    >
+                      <Text style={{ fontSize: 18 }}>{TYPE_ICONS[t]}</Text>
+                      <Text style={[s.categoryGridItemText, type === t && { color: COLORS.white }]}>
+                        {t}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Name */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Investment Name</Text>
-              <TextInput
-                style={s.textInput}
-                placeholder="e.g. Nippon India Growth Fund SIP"
-                placeholderTextColor={COLORS.outline}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            {/* Platform */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Platform / Bank</Text>
-              <TextInput
-                style={s.textInput}
-                placeholder="e.g. Zerodha, Groww, HDFC Bank"
-                placeholderTextColor={COLORS.outline}
-                value={platform}
-                onChangeText={setPlatform}
-              />
-            </View>
-
-            {/* Invested & Current Value */}
-            <View style={s.formRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Invested (₹)</Text>
+              {/* Name */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Investment Name</Text>
                 <TextInput
-                  style={s.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 50000"
+                  style={[
+                    s.textInput,
+                    focusedField === 'name' && s.inputFocused
+                  ]}
+                  placeholder="e.g. Nippon India Growth Fund SIP"
                   placeholderTextColor={COLORS.outline}
-                  value={investedAmount}
-                  onChangeText={setInvestedAmount}
+                  value={name}
+                  onChangeText={setName}
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Current Value (₹)</Text>
-                <TextInput
-                  style={s.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 55000"
-                  placeholderTextColor={COLORS.outline}
-                  value={currentValue}
-                  onChangeText={setCurrentValue}
-                />
-              </View>
-            </View>
 
-            {/* Interest Rate & Monthly SIP */}
-            <View style={s.formRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Interest Rate (%)</Text>
+              {/* Platform */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Platform / Bank</Text>
                 <TextInput
-                  style={s.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 7.1"
+                  style={[
+                    s.textInput,
+                    focusedField === 'platform' && s.inputFocused
+                  ]}
+                  placeholder="e.g. Zerodha, Groww, HDFC Bank"
                   placeholderTextColor={COLORS.outline}
-                  value={interestRate}
-                  onChangeText={setInterestRate}
+                  value={platform}
+                  onChangeText={setPlatform}
+                  onFocus={() => setFocusedField('platform')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Monthly SIP Contribution</Text>
-                <TextInput
-                  style={s.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 5000"
-                  placeholderTextColor={COLORS.outline}
-                  value={monthlyContribution}
-                  onChangeText={setMonthlyContribution}
-                />
-              </View>
-            </View>
 
-            {/* Status Selector */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Status</Text>
-              <View style={s.statusSelectorRow}>
-                {[
-                  { value: 'active', label: 'Active', desc: 'Growing Portfolio' },
-                  { value: 'matured', label: 'Matured', desc: 'Target Reached' },
-                  { value: 'withdrawn', label: 'Withdrawn', desc: 'Fund Cashed Out' }
-                ].map((item) => (
-                  <TouchableOpacity
-                    key={item.value}
+              {/* Invested & Current Value */}
+              <View style={s.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.inputLabel}>Invested (₹)</Text>
+                  <TextInput
                     style={[
-                      s.statusBox,
-                      status === item.value ? s.statusBoxActive : s.statusBoxInactive
+                      s.textInput,
+                      focusedField === 'investedAmount' && s.inputFocused
                     ]}
-                    onPress={() => setStatus(item.value)}
-                  >
-                    <Text style={[
-                      s.statusBoxTitle,
-                      status === item.value ? s.statusBoxTitleActive : s.statusBoxTitleInactive
-                    ]}>
-                      {item.label}
-                    </Text>
-                    <Text style={s.statusBoxDesc}>{item.desc}</Text>
-                  </TouchableOpacity>
-                ))}
+                    keyboardType="decimal-pad"
+                    placeholder="e.g. 50000"
+                    placeholderTextColor={COLORS.outline}
+                    value={investedAmount === '' ? '' : String(investedAmount)}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9.]/g, '');
+                      const parts = cleaned.split('.');
+                      const formatted = parts.length > 2
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned;
+                      setInvestedAmount(formatted);
+                    }}
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField('investedAmount')}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.inputLabel}>Current Value (₹)</Text>
+                  <TextInput
+                    style={[
+                      s.textInput,
+                      focusedField === 'currentValue' && s.inputFocused
+                    ]}
+                    keyboardType="decimal-pad"
+                    placeholder="e.g. 55000"
+                    placeholderTextColor={COLORS.outline}
+                    value={currentValue === '' ? '' : String(currentValue)}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9.]/g, '');
+                      const parts = cleaned.split('.');
+                      const formatted = parts.length > 2
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned;
+                      setCurrentValue(formatted);
+                    }}
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField('currentValue')}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
+                  />
+                </View>
               </View>
-            </View>
 
-            {/* Notes */}
-            <View style={{ marginBottom: 24 }}>
-              <Text style={s.inputLabel}>Notes</Text>
-              <TextInput
-                style={s.textInput}
-                placeholder="Add optional notes..."
-                placeholderTextColor={COLORS.outline}
-                value={notes}
-                onChangeText={setNotes}
-              />
-            </View>
+              {/* Interest Rate & Monthly SIP */}
+              <View style={s.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.inputLabel}>Interest Rate (%)</Text>
+                  <TextInput
+                    style={[
+                      s.textInput,
+                      focusedField === 'interestRate' && s.inputFocused
+                    ]}
+                    keyboardType="decimal-pad"
+                    placeholder="e.g. 7.1"
+                    placeholderTextColor={COLORS.outline}
+                    value={interestRate === '' ? '' : String(interestRate)}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9.]/g, '');
+                      const parts = cleaned.split('.');
+                      const formatted = parts.length > 2
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned;
+                      setInterestRate(formatted);
+                    }}
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField('interestRate')}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.inputLabel}>Monthly SIP Contribution</Text>
+                  <TextInput
+                    style={[
+                      s.textInput,
+                      focusedField === 'monthlyContribution' && s.inputFocused
+                    ]}
+                    keyboardType="decimal-pad"
+                    placeholder="e.g. 5000"
+                    placeholderTextColor={COLORS.outline}
+                    value={monthlyContribution === '' ? '' : String(monthlyContribution)}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9.]/g, '');
+                      const parts = cleaned.split('.');
+                      const formatted = parts.length > 2
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned;
+                      setMonthlyContribution(formatted);
+                    }}
+                    returnKeyType="done"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    blurOnSubmit={false}
+                    caretHidden={false}
+                    selection={undefined}
+                    onFocus={() => setFocusedField('monthlyContribution')}
+                    onBlur={() => setFocusedField(null)}
+                    cursorColor={COLORS.teal}
+                    selectionColor={COLORS.teal + '40'}
+                  />
+                </View>
+              </View>
 
-            {/* Save Button */}
-            <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
-              {saving ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={s.submitBtnText}>Save Investment</Text>
-              )}
-            </TouchableOpacity>
+              {/* Status Selector */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Status</Text>
+                <View style={s.statusSelectorRow}>
+                  {[
+                    { value: 'active', label: 'Active', desc: 'Growing Portfolio' },
+                    { value: 'matured', label: 'Matured', desc: 'Target Reached' },
+                    { value: 'withdrawn', label: 'Withdrawn', desc: 'Fund Cashed Out' }
+                  ].map((item) => (
+                    <TouchableOpacity
+                      key={item.value}
+                      style={[
+                        s.statusBox,
+                        status === item.value ? s.statusBoxActive : s.statusBoxInactive
+                      ]}
+                      onPress={() => setStatus(item.value)}
+                    >
+                      <Text style={[
+                        s.statusBoxTitle,
+                        status === item.value ? s.statusBoxTitleActive : s.statusBoxTitleInactive
+                      ]}>
+                        {item.label}
+                      </Text>
+                      <Text style={s.statusBoxDesc}>{item.desc}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-            {/* Cancel Button */}
-            <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+              {/* Notes */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={s.inputLabel}>Notes</Text>
+                <TextInput
+                  style={[
+                    s.textInput,
+                    focusedField === 'notes' && s.inputFocused
+                  ]}
+                  placeholder="Add optional notes..."
+                  placeholderTextColor={COLORS.outline}
+                  value={notes}
+                  onChangeText={setNotes}
+                  onFocus={() => setFocusedField('notes')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
+                />
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={s.submitBtnText}>Save Investment</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -520,7 +627,7 @@ const s = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },
   addBtn: { padding: 4 },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: 120 },
 
   // Summary Metrics
   summaryGrid: {
@@ -907,5 +1014,14 @@ const s = StyleSheet.create({
     color: COLORS.onSurfaceVariant,
     fontSize: 14,
     fontWeight: '700',
+  },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

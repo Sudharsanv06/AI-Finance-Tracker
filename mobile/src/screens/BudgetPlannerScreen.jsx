@@ -1,8 +1,8 @@
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, Platform
+  ActivityIndicator, Alert, Modal, TextInput, FlatList, SafeAreaView, Platform, KeyboardAvoidingView
 } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import budgetService from '../services/budgetService';
 import { formatCurrency, COLORS } from '../utils/helpers';
@@ -101,8 +101,9 @@ export default function BudgetPlannerScreen({ navigation }) {
   const [monthlyLimit, setMonthlyLimit] = useState('');
   const [alertAt, setAlertAt] = useState('80');
   const [saving, setSaving] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
-  const fetchBudgets = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const res = await budgetService.getBudgets(selectedMonth, selectedYear);
@@ -120,16 +121,15 @@ export default function BudgetPlannerScreen({ navigation }) {
     }
   }, [selectedMonth, selectedYear]);
 
-  const hasFetched = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (hasFetched.current) return;
-      hasFetched.current = true;
-      fetchBudgets();
-      return () => {
-        hasFetched.current = false;
+      let isActive = true;
+      const load = async () => {
+        if (isActive) await fetchAll();
       };
-    }, [fetchBudgets])
+      load();
+      return () => { isActive = false; };
+    }, [fetchAll])
   );
 
   const handleOpenModal = (budget = null) => {
@@ -168,7 +168,7 @@ export default function BudgetPlannerScreen({ navigation }) {
         await budgetService.createBudget(payload);
       }
       setShowModal(false);
-      fetchBudgets();
+      fetchAll();
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to save budget');
     } finally {
@@ -188,7 +188,7 @@ export default function BudgetPlannerScreen({ navigation }) {
           onPress: async () => {
             try {
               await budgetService.deleteBudget(id);
-              fetchBudgets();
+              fetchAll();
             } catch (err) {
               Alert.alert('Error', 'Failed to delete budget');
             }
@@ -368,7 +368,7 @@ export default function BudgetPlannerScreen({ navigation }) {
 
       {/* Set/Edit Budget Form Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
-        <View style={s.modalContainer}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>{editingBudget ? 'Edit Budget' : 'Set Budget'}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -376,72 +376,114 @@ export default function BudgetPlannerScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {/* Category Select Grid */}
-            {!editingBudget && (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={s.inputLabel}>Category</Text>
-                <View style={s.categoryGrid}>
-                  {CATEGORIES.map((c) => (
-                    <TouchableOpacity
-                      key={c}
-                      style={[s.categoryGridItem, category === c && s.categoryGridActiveItem]}
-                      onPress={() => setCategory(c)}
-                    >
-                      <Text style={{ fontSize: 18 }}>{CATEGORY_ICONS[c]}</Text>
-                      <Text style={[s.categoryGridItemText, category === c && { color: COLORS.white }]}>
-                        {c.split(' ')[0]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {/* Category Select Grid */}
+              {!editingBudget && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={s.inputLabel}>Category</Text>
+                  <View style={s.categoryGrid}>
+                    {CATEGORIES.map((c) => (
+                      <TouchableOpacity
+                        key={c}
+                        style={[s.categoryGridItem, category === c && s.categoryGridActiveItem]}
+                        onPress={() => setCategory(c)}
+                      >
+                        <Text style={{ fontSize: 18 }}>{CATEGORY_ICONS[c]}</Text>
+                        <Text style={[s.categoryGridItemText, category === c && { color: COLORS.white }]}>
+                          {c.split(' ')[0]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
-
-            {/* Limit Input */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={s.inputLabel}>Monthly Limit (₹)</Text>
-              <TextInput
-                style={s.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 10000"
-                placeholderTextColor={COLORS.outline}
-                value={monthlyLimit}
-                onChangeText={setMonthlyLimit}
-              />
-            </View>
-
-            {/* Alert percentage */}
-            <View style={{ marginBottom: 24 }}>
-              <Text style={s.inputLabel}>Alert Percentage (%)</Text>
-              <TextInput
-                style={s.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 80"
-                placeholderTextColor={COLORS.outline}
-                value={alertAt}
-                onChangeText={setAlertAt}
-              />
-              <Text style={s.tipText}>
-                You will be notified when spending reaches this percent.
-              </Text>
-            </View>
-
-            {/* Save Button */}
-            <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
-              {saving ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={s.submitBtnText}>Save Budget Limit</Text>
               )}
-            </TouchableOpacity>
 
-            {/* Cancel Button */}
-            <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+              {/* Limit Input */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Monthly Limit (₹)</Text>
+                <TextInput
+                  style={[
+                    s.textInput,
+                    focusedField === 'monthlyLimit' && s.inputFocused
+                  ]}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 10000"
+                  placeholderTextColor={COLORS.outline}
+                  value={monthlyLimit === '' ? '' : String(monthlyLimit)}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9.]/g, '');
+                    const parts = cleaned.split('.');
+                    const formatted = parts.length > 2
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : cleaned;
+                    setMonthlyLimit(formatted);
+                  }}
+                  returnKeyType="done"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  blurOnSubmit={false}
+                  caretHidden={false}
+                  selection={undefined}
+                  onFocus={() => setFocusedField('monthlyLimit')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
+                />
+              </View>
+
+              {/* Alert percentage */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={s.inputLabel}>Alert Percentage (%)</Text>
+                <TextInput
+                  style={[
+                    s.textInput,
+                    focusedField === 'alertAt' && s.inputFocused
+                  ]}
+                  keyboardType="number-pad"
+                  placeholder="e.g. 80"
+                  placeholderTextColor={COLORS.outline}
+                  value={alertAt === '' ? '' : String(alertAt)}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9]/g, '');
+                    setAlertAt(cleaned);
+                  }}
+                  returnKeyType="done"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  blurOnSubmit={false}
+                  caretHidden={false}
+                  selection={undefined}
+                  onFocus={() => setFocusedField('alertAt')}
+                  onBlur={() => setFocusedField(null)}
+                  cursorColor={COLORS.teal}
+                  selectionColor={COLORS.teal + '40'}
+                />
+                <Text style={s.tipText}>
+                  You will be notified when spending reaches this percent.
+                </Text>
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity style={s.submitBtn} onPress={handleSave} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={s.submitBtnText}>Save Budget Limit</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setShowModal(false)}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -467,7 +509,7 @@ const s = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },
   addBtn: { padding: 4 },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: 120 },
   
   // Selector row styles
   selectorRow: {
@@ -724,6 +766,15 @@ const s = StyleSheet.create({
     color: COLORS.onSurfaceVariant,
     fontSize: 14,
     fontWeight: '700',
+  },
+  inputFocused: {
+    borderColor: COLORS.teal,
+    borderWidth: 2,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   categoryGrid: {
     flexDirection: 'row',
