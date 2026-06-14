@@ -102,12 +102,6 @@ export default function BillRemindersScreen({ navigation }) {
     setShowModal(true);
   };
 
-      fetchBills();
-    } catch (err) {
-      Alert.alert('Error', 'Failed to update payment status');
-    }
-  };
-
   const handleTogglePaid = async (bill) => {
     try {
       if (!bill.isDueThisMonth || bill.isPaid) {
