@@ -232,7 +232,7 @@ export function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
   try {
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           {/* Header - fixed at top */}
           <View style={ms.header}>
             <Text style={ms.title}>{expense ? (isIncome ? 'Edit Income' : 'Edit Transaction') : 'Add Expense'}</Text>

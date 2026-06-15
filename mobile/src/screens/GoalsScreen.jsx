@@ -43,7 +43,7 @@ function AddGoalModal({ visible, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
         <View style={ms.header}>
           <Text style={ms.title}>New Savings Goal</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>

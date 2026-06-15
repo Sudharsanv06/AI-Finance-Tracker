@@ -168,7 +168,7 @@ function EventFormModal({ visible, onClose, onSaved, event }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
         <View style={ms.header}>
           <Text style={ms.title}>{event ? 'Edit Event' : 'New Event'}</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>

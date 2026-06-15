@@ -309,7 +309,7 @@ export default function BillRemindersScreen({ navigation }) {
 
       {/* Set/Edit Bill Form Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>{editingBill ? 'Edit Bill' : 'Add Bill Reminder'}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>

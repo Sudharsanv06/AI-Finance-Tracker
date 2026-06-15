@@ -38,7 +38,7 @@ const MONTHS = [
 function PickerModal({ visible, onClose, title, items, selectedValue, onSelect }) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
         <View style={s.modalHeader}>
           <Text style={s.modalTitle}>{title}</Text>
           <TouchableOpacity onPress={onClose}>
@@ -369,7 +369,7 @@ export default function BudgetPlannerScreen({ navigation }) {
 
       {/* Set/Edit Budget Form Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>{editingBudget ? 'Edit Budget' : 'Set Budget'}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>

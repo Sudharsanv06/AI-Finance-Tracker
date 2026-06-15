@@ -99,7 +99,7 @@ function CustomDatePickerModal({ visible, date, onSelect, onClose }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
         <View style={s.modalHeader}>
           <TouchableOpacity onPress={prevMonth} style={{ padding: 8 }}>
             <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
@@ -506,7 +506,7 @@ export default function AddTransactionScreen({ navigation, route }) {
 
       {/* Category Select Modal */}
       <Modal visible={showCategoryModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCategoryModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Select Category</Text>
             <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
@@ -540,7 +540,7 @@ export default function AddTransactionScreen({ navigation, route }) {
 
       {/* Event Select Modal */}
       <Modal visible={showEventModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEventModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Select Event</Text>
             <TouchableOpacity onPress={() => setShowEventModal(false)}>

@@ -1,7 +1,7 @@
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, RefreshControl, ActivityIndicator, Image,
-  Modal, FlatList, TextInput, Platform, Alert
+  Modal, FlatList, TextInput, Platform, Alert, SafeAreaView, KeyboardAvoidingView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback } from 'react';
@@ -529,7 +529,7 @@ export default function DashboardScreen({ navigation }) {
 
       {/* Account Selector Modal */}
       <Modal visible={showAccountModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAccountModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Select Account</Text>
             <TouchableOpacity onPress={() => setShowAccountModal(false)}>
@@ -573,7 +573,7 @@ export default function DashboardScreen({ navigation }) {
 
       {/* Quick Actions Modal */}
       <Modal visible={showActionsModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowActionsModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Quick Actions</Text>
             <TouchableOpacity onPress={() => setShowActionsModal(false)}>
@@ -641,7 +641,7 @@ export default function DashboardScreen({ navigation }) {
 
       {/* Edit Starting Balances Modal */}
       <Modal visible={showEditBalancesModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEditBalancesModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -748,7 +748,7 @@ export default function DashboardScreen({ navigation }) {
 
       {/* Dynamic Notifications Modal */}
       <Modal visible={showNotificationModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotificationModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Notification Center</Text>
             <TouchableOpacity onPress={() => setShowNotificationModal(false)}>
@@ -825,7 +825,7 @@ export default function DashboardScreen({ navigation }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 20, paddingTop: Platform.OS === 'ios' ? 48 : 32, paddingBottom: 40 },
+  content: { padding: 20, paddingTop: 56, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   
   // Header Styles

@@ -2,7 +2,7 @@ import {
   View, Text, FlatList, StyleSheet,
   TouchableOpacity, Modal, TextInput,
   ActivityIndicator, Alert, RefreshControl,
-  KeyboardAvoidingView, Platform, ScrollView
+  KeyboardAvoidingView, Platform, ScrollView, SafeAreaView
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -33,7 +33,7 @@ function AddIncomeModal({ visible, onClose, onSaved }) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
         <View style={ms.header}>
           <Text style={ms.title}>Add Income</Text>
           <TouchableOpacity onPress={onClose} style={ms.closeBtn}>

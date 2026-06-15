@@ -340,7 +340,7 @@ export default function InvestmentsScreen({ navigation }) {
 
       {/* Set/Edit Investment Form Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>{editingInvestment ? 'Edit Investment' : 'Add Investment'}</Text>
             <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -613,7 +613,7 @@ export default function InvestmentsScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.background, paddingTop: Platform.OS === 'android' ? 40 : 0 },
   scrollView: { flex: 1 },
   header: {
     flexDirection: 'row',
