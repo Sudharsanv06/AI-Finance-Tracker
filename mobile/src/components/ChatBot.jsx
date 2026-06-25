@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, FlatList, Modal, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Animated, PanResponder, Dimensions,
 } from 'react-native';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +9,9 @@ import { useAuth } from '../context/AuthContext';
 import api    from '../services/api';
 import { COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const FAB_SIZE = 56;
 
 const SUGGESTIONS = [
   'How is my budget?',
@@ -20,10 +23,10 @@ const SUGGESTIONS = [
 const cleanMarkdown = (text) => {
   if (!text || typeof text !== 'string') return '';
   return text
-    .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold asterisks
-    .replace(/\*(.*?)\*/g, '$1')     // remove italic asterisks
-    .replace(/`([^`]+)`/g, '$1')     // remove inline code blocks
-    .replace(/^#+\s+/gm, '')         // remove headers markdown
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^#+\s+/gm, '')
     .trim();
 };
 
@@ -33,25 +36,64 @@ export default function ChatBot() {
   const [messages, setMessages] = useState([
     {
       role:    'assistant',
-      content: "Hi! I'm EventFi AI 🤖 Ask me anything about your finances!",
+      content: "Hi! I'm Paisa Pulse AI. Ask me anything about your finances!",
     },
   ]);
   const [input,   setInput]   = useState('');
   const [loading, setLoading] = useState(false);
   const listRef               = useRef(null);
 
+  // ── Draggable FAB position ───────────────────────────────────────────
+  const pan = useRef(
+    new Animated.ValueXY({
+      x: SCREEN_W - FAB_SIZE - 20,
+      y: SCREEN_H - FAB_SIZE - 160,
+    })
+  ).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        pan.setOffset({ x: pan.x._value, y: pan.y._value });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gesture) => {
+        pan.flattenOffset();
+        let newX = pan.x._value;
+        let newY = pan.y._value;
+        newX = Math.max(8, Math.min(newX, SCREEN_W - FAB_SIZE - 8));
+        newY = Math.max(60, Math.min(newY, SCREEN_H - FAB_SIZE - 100));
+        Animated.spring(pan, {
+          toValue: { x: newX, y: newY },
+          useNativeDriver: false,
+          friction: 6,
+        }).start();
+
+        // Tiny movement = treat as a tap, open the chat
+        const dist = Math.abs(gesture.dx) + Math.abs(gesture.dy);
+        if (dist < 6) {
+          setIsOpen(true);
+        }
+      },
+    })
+  ).current;
+
   useFocusEffect(
     useCallback(() => {
-      // Reset chat to fresh state on each focus
       setMessages([{
         role: 'assistant',
-        content: `Hi ${user?.name?.split(' ')[0] || 'there'}! \nI'm your EventFi AI advisor. I have access to all your \nfinancial data. Ask me anything! 💼`,
+        content: `Hi ${user?.name?.split(' ')[0] || 'there'}! I'm your Paisa Pulse AI advisor. I have access to all your financial data. Ask me anything!`,
       }]);
       setInput('');
     }, [user?.name])
   );
 
-  // Auto-scroll to bottom when messages or loading state changes
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
@@ -72,7 +114,7 @@ export default function ChatBot() {
 
     try {
       const history = messages
-        .slice(-8) // last 4 exchanges only
+        .slice(-8)
         .map(m => ({ role: m.role, content: m.content }));
       const res = await api.post('/ai/chat', { message: msg, history });
       setMessages((prev) => [
@@ -96,7 +138,7 @@ export default function ChatBot() {
       <View style={[s.msgRow, isUser && s.msgRowUser]}>
         {!isUser && (
           <View style={s.botAvatar}>
-            <Text style={{ fontSize: 16 }}>🤖</Text>
+            <Ionicons name="sparkles" size={16} color={COLORS.primary} />
           </View>
         )}
         <View style={[s.bubble, isUser ? s.bubbleUser : s.bubbleBot]}>
@@ -110,30 +152,29 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* Floating Button */}
-      <TouchableOpacity
-        style={s.fab}
-        onPress={() => setIsOpen(true)}
-        activeOpacity={0.85}
+      {/* Draggable Floating Button */}
+      <Animated.View
+        style={[s.fab, { transform: pan.getTranslateTransform() }]}
+        {...panResponder.panHandlers}
       >
-        <Ionicons name="chatbubble-ellipses" size={26} color="#ffffff" />
-      </TouchableOpacity>
+        <View style={s.fabInner}>
+          <Ionicons name="chatbubble-ellipses" size={26} color="#ffffff" />
+        </View>
+      </Animated.View>
 
-      {/* Chat Modal */}
-      <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={isOpen} animationType="slide" presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}>
         <KeyboardAvoidingView
           style={s.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
         >
-          {/* Header */}
           <View style={s.header}>
             <View style={s.headerLeft}>
               <View style={s.headerAvatar}>
-                <Text style={{ fontSize: 20 }}>🤖</Text>
+                <Ionicons name="sparkles" size={20} color="#ffffff" />
               </View>
               <View>
-                <Text style={s.headerTitle}>EventFi AI</Text>
+                <Text style={s.headerTitle}>Paisa Pulse AI</Text>
                 <Text style={s.headerSub}>Powered by Groq</Text>
               </View>
             </View>
@@ -156,26 +197,21 @@ export default function ChatBot() {
             </View>
           </View>
 
-          {/* Messages */}
           <FlatList
             ref={listRef}
             data={messages}
-            keyExtractor={(_, i) => String(i)}
+            keyExtractor={(item, i) => `${item.role}-${i}-${item.content?.length || 0}`}
             renderItem={renderMessage}
-            style={{ flex: 1, maxHeight: 320 }}
+            style={{ flex: 1 }}
             contentContainerStyle={{ padding: 12, gap: 8, paddingBottom: 8 }}
             onContentSizeChange={() =>
-              listRef.current?.scrollToEnd({ animated: true })
+              setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50)
             }
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0,
-              autoscrollToTopThreshold: 10,
-            }}
             ListFooterComponent={
               loading ? (
                 <View style={s.typingRow}>
                   <View style={s.botAvatar}>
-                    <Text style={{ fontSize: 16 }}>🤖</Text>
+                    <Ionicons name="sparkles" size={16} color={COLORS.primary} />
                   </View>
                   <View style={s.typingBubble}>
                     <ActivityIndicator size="small" color={COLORS.primary} />
@@ -185,7 +221,6 @@ export default function ChatBot() {
             }
           />
 
-          {/* Suggestions */}
           {messages.length <= 1 && !loading && (
             <View style={s.suggestRow}>
               {SUGGESTIONS.map((sg) => (
@@ -200,7 +235,6 @@ export default function ChatBot() {
             </View>
           )}
 
-          {/* Input */}
           <View style={s.inputRow}>
             <TextInput
               style={s.input}
@@ -228,21 +262,25 @@ export default function ChatBot() {
 
 const s = StyleSheet.create({
   fab: {
-    position:        'absolute',
-    bottom:          80,
-    right:           20,
-    width:           56,
-    height:          56,
-    borderRadius:    28,
-    backgroundColor: '#0058be', // Vibrant Blue primary
-    alignItems:      'center',
-    justifyContent:  'center',
-    shadowColor:     '#0058be',
-    shadowOffset:    { width: 0, height: 4 },
-    shadowOpacity:   0.35,
-    shadowRadius:    8,
-    elevation:       8,
-    zIndex:          999,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    zIndex: 999,
+  },
+  fabInner: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    backgroundColor: '#0058be',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0058be',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
   },
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
@@ -274,7 +312,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  messageList: { padding: 16, gap: 12, paddingBottom: 16 },
   msgRow:     { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 4 },
   msgRowUser: { flexDirection: 'row-reverse' },
   botAvatar: {

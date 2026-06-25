@@ -7,9 +7,9 @@ import { useAuth }  from '../context/AuthContext';
 import { COLORS }   from '../utils/helpers';
 
 const ROLES = [
-  { val: 'Organizer',    label: 'Organizer',    icon: '🎯', desc: 'Create events' },
-  { val: 'Approver',     label: 'Approver',     icon: '✅', desc: 'Approve expenses' },
-  { val: 'FinanceAdmin', label: 'Finance Admin', icon: '💼', desc: 'Full access' },
+  { val: 'Organizer',    label: 'Organizer',    icon: 'flag-outline', desc: 'Create events' },
+  { val: 'Approver',     label: 'Approver',     icon: 'checkmark-circle-outline', desc: 'Approve expenses' },
+  { val: 'FinanceAdmin', label: 'Finance Admin', icon: 'briefcase-outline', desc: 'Full access' },
 ];
 
 export default function RegisterScreen({ navigation }) {
@@ -48,14 +48,14 @@ export default function RegisterScreen({ navigation }) {
       {/* Logo */}
       <View style={s.logoWrap}>
         <View style={s.logoCircle}>
-          <Text style={s.logoText}>E</Text>
+          <Text style={s.logoText}>P</Text>
         </View>
-        <Text style={s.appName}>EventFi</Text>
+        <Text style={s.appName}>Paisa Pulse</Text>
       </View>
 
       <View style={s.card}>
         <Text style={s.title}>Create Account</Text>
-        <Text style={s.subtitle}>Join EventFi today</Text>
+        <Text style={s.subtitle}>Join Paisa Pulse today</Text>
 
         <Text style={s.label}>FULL NAME</Text>
         <TextInput style={s.input} value={name} onChangeText={setName}

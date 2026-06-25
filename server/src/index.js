@@ -94,7 +94,7 @@ app.use('/api/bills',   billRoutes)
 app.get('/api/health', (req, res) => {
   res.json({
     success:     true,
-    message:     '🚀 EventFi API is running',
+    message:     '🚀 Paisa Pulse API is running',
     environment: process.env.NODE_ENV,
     timestamp:   new Date().toISOString(),
   });

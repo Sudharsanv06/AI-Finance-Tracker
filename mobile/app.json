@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "EventFi",
-    "slug": "eventfi",
+    "name": "Paisa Pulse",
+    "slug": "paisa-pulse",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -12,16 +12,17 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f9b8e"
       },
-      "package": "com.sudharsan7.eventfi"
+      "package": "com.sudharsan7.paisapulse",
+      "softwareKeyboardLayoutMode": "pan"
     },
+    "owner": "susan47",
     "extra": {
       "eas": {
-        "projectId": "f11f79bb-d7cc-4d43-aa7e-ce2a4fe55a81"
+        "projectId": "dea70ab6-a0cf-4fc2-8f63-236c7cb6f0ff"
       }
-    },
-    "owner": "susan47"
+    }
   }
 }

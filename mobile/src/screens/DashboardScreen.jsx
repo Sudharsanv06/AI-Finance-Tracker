@@ -4,7 +4,7 @@ import {
   Modal, FlatList, TextInput, Platform, Alert, SafeAreaView, KeyboardAvoidingView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useIsFocused } from '@react-navigation/native';
 import { getExpenses } from '../services/expenseService';
@@ -19,22 +19,23 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ExpenseFormModal } from './ExpensesScreen';
 
 const BILL_ICONS = {
-  Rent: '🏠',
-  Electricity: '💡',
-  Water: '💧',
-  Internet: '📶',
-  Phone: '📱',
-  Insurance: '🛡️',
-  Subscription: '📺',
-  EMI: '💳',
-  Gas: '🔥',
-  'Credit Card': '💰',
-  Other: '📄',
+  Rent: 'home',
+  Electricity: 'bulb',
+  Water: 'water',
+  Internet: 'wifi',
+  Phone: 'phone-portrait',
+  Insurance: 'shield-checkmark',
+  Subscription: 'tv',
+  EMI: 'card',
+  Gas: 'flame',
+  'Credit Card': 'cash',
+  Other: 'document-text',
 };
 
 export default function DashboardScreen({ navigation }) {
   const { user, updateUser } = useAuth();
   const isFocused = useIsFocused();
+  const hasAlertedBudget = useRef(false);
 
   const [expenses, setExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
@@ -111,6 +112,32 @@ export default function DashboardScreen({ navigation }) {
     }
   };
 
+  // Load cached dashboard data instantly on mount (before the slow network fetch)
+  useEffect(() => {
+    const loadCache = async () => {
+      if (!user?._id) return;
+      try {
+        const cached = await AsyncStorage.getItem(`dashboard_cache_${user._id}`);
+        if (cached) {
+          const data = JSON.parse(cached);
+          // Only use cache if it's less than 1 hour old
+          if (Date.now() - (data.cachedAt || 0) < 3600000) {
+            setExpenses(data.expenses || []);
+            setAllExpenses(data.allExpenses || []);
+            setIncomeSummary(data.incomeSummary || null);
+            setLoanSummary(data.loanSummary || null);
+            setBudgets(data.budgets || []);
+            setBills(data.bills || []);
+            setLoading(false); // Show cached data immediately
+          }
+        }
+      } catch (e) {
+        console.log('Cache read error:', e);
+      }
+    };
+    loadCache();
+  }, [user?._id]);
+
   const fetchAll = useCallback(async () => {
     try {
       const now = new Date();
@@ -130,9 +157,32 @@ export default function DashboardScreen({ navigation }) {
       setLoanSummary(loanRes.data || null);
       setBudgets(budgetRes.data?.budgets || []);
       setBills(billRes.data?.bills || []);
+
+      // Cache dashboard snapshot for instant display on next app open
+      try {
+        await AsyncStorage.setItem(`dashboard_cache_${user?._id}`, JSON.stringify({
+          expenses: expRes.data?.expenses || [],
+          allExpenses: allExpRes.data?.data?.expenses || [],
+          incomeSummary: incRes.data || null,
+          loanSummary: loanRes.data || null,
+          budgets: budgetRes.data?.budgets || [],
+          bills: billRes.data?.bills || [],
+          cachedAt: Date.now(),
+        }));
+      } catch (cacheErr) {
+        console.log('Cache write error:', cacheErr);
+      }
       
       if (meRes?.data?.success && meRes?.data?.data?.user) {
-        updateUser(meRes.data.data.user);
+        const serverUser = meRes.data.data.user;
+        // Preserve local-only fields (profilePhoto) that the server
+        // doesn't store — merging instead of replacing prevents the
+        // photo from vanishing every time the Dashboard refreshes.
+        updateUser({
+          ...user,              // current local state (has profilePhoto)
+          ...serverUser,        // server fields overwrite (name, email, role, etc.)
+          profilePhoto: user?.profilePhoto || serverUser?.profilePhoto || null,
+        });
       }
     } catch (err) {
       console.log('Dashboard fetch error:', err.message);
@@ -181,16 +231,21 @@ export default function DashboardScreen({ navigation }) {
     fetchAll();
   };
 
-  // 80% Budget Alert Trigger
+  // 80% Budget Alert Trigger — fires once per overage, resets when back under threshold
   useEffect(() => {
     if (!loading && totalBudgetLimit > 0 && budgetPercent >= 80) {
-      Alert.alert(
-        '⚠️ Budget Warning',
-        `You have utilized ${budgetPercent}% of your monthly budget limit! Please review your expenses.`,
-        [{ text: 'Dismiss' }]
-      );
+      if (!hasAlertedBudget.current) {
+        hasAlertedBudget.current = true;
+        Alert.alert(
+          'Budget Warning',
+          `You have utilized ${budgetPercent}% of your monthly budget limit! Please review your expenses.`,
+          [{ text: 'Dismiss' }]
+        );
+      }
+    } else {
+      hasAlertedBudget.current = false;
     }
-  }, [budgets, loading]);
+  }, [budgetPercent, totalBudgetLimit, loading]);
 
   // Calculations
   const now = new Date();
@@ -218,7 +273,7 @@ export default function DashboardScreen({ navigation }) {
     .reduce((sum, e) => sum + e.amount, 0);
 
   const allBankExpenses = allExpenses
-    .filter(e => (e.paymentMethod === 'Bank Transfer' || e.paymentMethod === 'UPI' || e.paymentMethod === 'Cheque') && e.approvalStatus !== 'Rejected')
+    .filter(e => ['Bank Transfer', 'UPI', 'Cheque', 'Other'].includes(e.paymentMethod) && e.approvalStatus !== 'Rejected')
     .reduce((sum, e) => sum + e.amount, 0);
 
   // Transfers/Withdrawals from Main Bank Account:
@@ -299,7 +354,11 @@ export default function DashboardScreen({ navigation }) {
         <View style={s.header}>
           <View style={s.headerLeft}>
             <TouchableOpacity style={s.avatarContainer} onPress={() => navigation.navigate('More')}>
-              <Text style={s.avatarEmoji}>👤</Text>
+              {user?.profilePhoto ? (
+                <Image source={{ uri: user.profilePhoto }} style={s.headerAvatarImage} />
+              ) : (
+                <Ionicons name="person" size={22} color={COLORS.primary} />
+              )}
             </TouchableOpacity>
             <View>
               <Text style={s.greeting}>Hi, {user?.name?.split(' ')[0]}!</Text>
@@ -401,7 +460,8 @@ export default function DashboardScreen({ navigation }) {
                 onPress={() => {
                   const initial = {};
                   Object.keys(startingBalances).forEach(k => {
-                    initial[k] = startingBalances[k] === 0 ? '' : String(startingBalances[k]);
+                    const liveBalance = getAccountBalance(k);
+                    initial[k] = liveBalance === 0 ? '' : String(liveBalance);
                   });
                   setTempBalances(initial);
                   setShowEditBalancesModal(true);
@@ -409,7 +469,10 @@ export default function DashboardScreen({ navigation }) {
                 style={s.setupBalanceBtn}
                 activeOpacity={0.8}
               >
-                <Text style={s.setupBalanceBtnText}>⚙️ Set Starting Balance</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="settings-outline" size={16} color="#ffffff" />
+                  <Text style={s.setupBalanceBtnText}>Set Starting Balance</Text>
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -484,7 +547,7 @@ export default function DashboardScreen({ navigation }) {
             upcomingBills.map((bill) => (
               <View key={bill._id} style={s.billRow}>
                 <View style={s.billIconWrapper}>
-                  <Text style={s.billIconText}>{BILL_ICONS[bill.category] || '📄'}</Text>
+                  <Ionicons name={BILL_ICONS[bill.category] || 'document-text'} size={20} color={COLORS.primary} />
                 </View>
                 <View style={s.billInfo}>
                   <Text style={s.billName}>{bill.title}</Text>
@@ -514,7 +577,7 @@ export default function DashboardScreen({ navigation }) {
             expenses.slice(0, 4).map((exp) => (
               <TouchableOpacity key={exp._id} style={s.expenseItem} onPress={() => handleEditExpense(exp)}>
                 <View style={[s.billIconWrapper, { backgroundColor: 'rgba(0, 88, 190, 0.05)' }]}>
-                  <Text style={s.billIconText}>💸</Text>
+                  <Ionicons name="cash-outline" size={18} color="#0058be" />
                 </View>
                 <View style={s.billInfo}>
                   <Text style={s.billName} numberOfLines={1}>{exp.description}</Text>
@@ -544,10 +607,10 @@ export default function DashboardScreen({ navigation }) {
             bounces={true}
           >
             {[
-              { name: 'Main Account', icon: '🏦', desc: 'Primary Bank Account' },
-              { name: 'Savings Account', icon: '📈', desc: 'Investment & Savings' },
-              { name: 'Credit Card', icon: '💳', desc: 'Credit Line Limit' },
-              { name: 'Cash', icon: '💵', desc: 'Physical Wallet Cash' }
+              { name: 'Main Account', icon: 'business', desc: 'Primary Bank Account' },
+              { name: 'Savings Account', icon: 'trending-up', desc: 'Investment & Savings' },
+              { name: 'Credit Card', icon: 'card', desc: 'Credit Line Limit' },
+              { name: 'Cash', icon: 'cash', desc: 'Physical Wallet Cash' }
             ].map((item) => (
               <TouchableOpacity
                 key={item.name}
@@ -557,7 +620,7 @@ export default function DashboardScreen({ navigation }) {
                   setShowAccountModal(false);
                 }}
               >
-                <Text style={{ fontSize: 22, marginRight: 16 }}>{item.icon}</Text>
+                <Ionicons name={item.icon} size={22} color={COLORS.primary} style={{ marginRight: 16 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={[s.modalItemText, selectedAccount === item.name && { fontWeight: '700', color: COLORS.primary }]}>{item.name}</Text>
                   <Text style={{ fontSize: 11, color: COLORS.onSurfaceVariant }}>{item.desc}</Text>
@@ -594,7 +657,7 @@ export default function DashboardScreen({ navigation }) {
                 navigation.navigate('AddTransaction');
               }}
             >
-              <Text style={{ fontSize: 20, marginRight: 16 }}>➕</Text>
+              <Ionicons name="add-circle" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
               <Text style={s.modalItemText}>Add New Transaction</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -604,7 +667,7 @@ export default function DashboardScreen({ navigation }) {
                 navigation.navigate('BudgetPlanner');
               }}
             >
-              <Text style={{ fontSize: 20, marginRight: 16 }}>📊</Text>
+              <Ionicons name="stats-chart" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
               <Text style={s.modalItemText}>Set Budget Limit</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -614,7 +677,7 @@ export default function DashboardScreen({ navigation }) {
                 navigation.navigate('BillReminders');
               }}
             >
-              <Text style={{ fontSize: 20, marginRight: 16 }}>⏰</Text>
+              <Ionicons name="time" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
               <Text style={s.modalItemText}>Add Bill Reminder</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -623,13 +686,14 @@ export default function DashboardScreen({ navigation }) {
                 setShowActionsModal(false);
                 const initial = {};
                 Object.keys(startingBalances).forEach(k => {
-                  initial[k] = startingBalances[k] === 0 ? '' : String(startingBalances[k]);
+                  const liveBalance = getAccountBalance(k);
+                  initial[k] = liveBalance === 0 ? '' : String(liveBalance);
                 });
                 setTempBalances(initial);
                 setShowEditBalancesModal(true);
               }}
             >
-              <Text style={{ fontSize: 20, marginRight: 16 }}>⚙️</Text>
+              <Ionicons name="settings" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
               <Text style={s.modalItemText}>Edit Starting Balances</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[s.modalCloseBtn, { marginTop: 24, marginBottom: 20 }]} onPress={() => setShowActionsModal(false)}>
@@ -644,7 +708,7 @@ export default function DashboardScreen({ navigation }) {
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Edit Starting Balances</Text>
@@ -729,7 +793,14 @@ export default function DashboardScreen({ navigation }) {
                 onPress={() => {
                   const finalBalances = {};
                   Object.keys(tempBalances).forEach(k => {
-                    finalBalances[k] = parseFloat(tempBalances[k]) || 0;
+                    const typedCurrentValue = parseFloat(tempBalances[k]) || 0;
+                    // The field now shows the LIVE balance (Patches 1 & 2), not the hidden
+                    // starting seed. So what the user types is the CURRENT balance they
+                    // want. Back-calculate a new starting seed so that getAccountBalance()
+                    // reproduces exactly this value once all existing transactions are
+                    // re-applied on top of it.
+                    const delta = getAccountBalance(k) - (startingBalances[k] ?? 0);
+                    finalBalances[k] = typedCurrentValue - delta;
                   });
                   saveBalances(finalBalances);
                   setShowEditBalancesModal(false);
@@ -765,7 +836,7 @@ export default function DashboardScreen({ navigation }) {
             {/* Dynamic Budget Alert */}
             {totalBudgetLimit > 0 && budgetPercent >= 80 && (
               <View style={[s.notifCard, { borderColor: COLORS.red }]}>
-                <Text style={{ fontSize: 20, marginRight: 12 }}>⚠️</Text>
+                <Ionicons name="warning" size={20} color={COLORS.red} style={{ marginRight: 12 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '700', color: COLORS.red, fontSize: 13 }}>Budget Alert</Text>
                   <Text style={s.notifText}>You have utilized {budgetPercent}% of your monthly budget limit!</Text>
@@ -775,7 +846,7 @@ export default function DashboardScreen({ navigation }) {
             {/* Dynamic Bills Alert */}
             {bills.filter(b => b.isDueThisMonth && !b.isPaid && b.daysUntilDue <= 3).map((bill) => (
               <View key={bill._id} style={[s.notifCard, { borderColor: COLORS.red }]}>
-                <Text style={{ fontSize: 20, marginRight: 12 }}>⏰</Text>
+                <Ionicons name="time" size={20} color={COLORS.red} style={{ marginRight: 12 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '700', color: COLORS.red, fontSize: 13 }}>Bill Due Soon</Text>
                   <Text style={s.notifText}>'{bill.title}' of {formatCurrency(bill.amount)} is due in {bill.daysUntilDue} days!</Text>
@@ -784,14 +855,14 @@ export default function DashboardScreen({ navigation }) {
             ))}
             {/* General welcome notification cards */}
             <View style={s.notifCard}>
-              <Text style={{ fontSize: 20, marginRight: 12 }}>🎉</Text>
+              <Ionicons name="gift" size={20} color={COLORS.primary} style={{ marginRight: 12 }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '700', color: COLORS.onSurface, fontSize: 13 }}>Welcome!</Text>
-                <Text style={s.notifText}>Welcome to AI Finance Tracker v1.00. Your accounts are ready.</Text>
+                <Text style={s.notifText}>Welcome to Paisa Pulse v1.00. Your accounts are ready.</Text>
               </View>
             </View>
             <View style={s.notifCard}>
-              <Text style={{ fontSize: 20, marginRight: 12 }}>💡</Text>
+              <Ionicons name="bulb" size={20} color={COLORS.primary} style={{ marginRight: 12 }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '700', color: COLORS.onSurface, fontSize: 13 }}>AI Tip</Text>
                 <Text style={s.notifText}>Click the '+' icon to log transactions, and use the AI Chat bot to analyze your habits.</Text>
@@ -854,8 +925,13 @@ const s = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    overflow: 'hidden',
   },
-  avatarEmoji: { fontSize: 22 },
+  headerAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 21,
+  },
   greeting: {
     fontSize: 16,
     fontWeight: '700',

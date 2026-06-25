@@ -33,10 +33,7 @@ export const chat = async (req, res, next) => {
     let contextText = '';
     try {
       // Fetch ALL user data in parallel
-      let eventQuery = {};
-      if (req.user.role === 'Organizer') {
-        eventQuery.createdBy = req.user._id;
-      }
+      let eventQuery = { createdBy: req.user._id };
       
       const userId = req.user._id;
       const now = new Date();
@@ -201,7 +198,7 @@ Note: Could not fetch complete financial data.`;
     const messages = [
       {
         role: 'system',
-        content: `You are EventFi AI — a personal financial advisor 
+        content: `You are Paisa Pulse AI — a personal financial advisor 
 for ${req.user.name}. You have their complete financial data below.
 
 ${contextText}

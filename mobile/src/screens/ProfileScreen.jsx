@@ -1,15 +1,19 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Alert,
+  ScrollView, Alert, Image, ActivityIndicator,
 } from 'react-native';
+import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth }             from '../context/AuthContext';
 import { COLORS, getInitials } from '../utils/helpers';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const MENU_ITEMS = [
-  { icon: '🎯', label: 'Financial Goals', screen: 'Goals' },
-  { icon: '📊', label: 'Budget Planner',  screen: 'BudgetPlanner' },
-  { icon: '💳', label: 'Bill Reminders',  screen: 'BillReminders' },
-  { icon: '📈', label: 'Investments',      screen: 'Investments' },
+  { icon: 'flag-outline', label: 'Financial Goals', screen: 'Goals' },
+  { icon: 'stats-chart-outline', label: 'Budget Planner',  screen: 'BudgetPlanner' },
+  { icon: 'card-outline', label: 'Bill Reminders',  screen: 'BillReminders' },
+  { icon: 'trending-up-outline', label: 'Investments',      screen: 'Investments' },
 ];
 
 const ROLE_CONFIG = {
@@ -19,7 +23,8 @@ const ROLE_CONFIG = {
 };
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+  const [uploading, setUploading] = useState(false);
 
   const rc = ROLE_CONFIG[user?.role] || ROLE_CONFIG.Organizer;
 
@@ -34,22 +39,65 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
+  const handlePickPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        return Alert.alert(
+          'Permission needed',
+          'Please allow photo library access to set a profile picture.'
+        );
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+
+      setUploading(true);
+      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const dataUri = `data:image/jpeg;base64,${base64}`;
+
+      await updateUser({ ...user, profilePhoto: dataUri });
+    } catch (err) {
+      console.log('Photo pick error:', err);
+      Alert.alert('Error', `Could not set profile photo.\n\nDetails: ${err?.message || String(err)}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
 
       {/* Profile Card */}
       <View style={s.profileCard}>
-        <View style={s.avatar}>
-          <Text style={s.avatarText}>{getInitials(user?.name)}</Text>
-        </View>
+        <TouchableOpacity style={s.avatar} onPress={handlePickPhoto} activeOpacity={0.85}>
+          {uploading ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : user?.profilePhoto ? (
+            <Image source={{ uri: user.profilePhoto }} style={s.avatarImage} />
+          ) : (
+            <Text style={s.avatarText}>{getInitials(user?.name)}</Text>
+          )}
+          <View style={s.cameraBadge}>
+            <Ionicons name="camera" size={13} color="#0058be" />
+          </View>
+        </TouchableOpacity>
         <Text style={s.name}>{user?.name}</Text>
         <Text style={s.email}>{user?.email}</Text>
       </View>
 
       {/* App info */}
       <View style={s.infoCard}>
-        <Text style={s.infoTitle}>AI Finance Tracker v1.00</Text>
-        <Text style={s.infoSub}>Smart Finance Manager</Text>
+        <Text style={s.infoTitle}>Paisa Pulse v1.00</Text>
+        <Text style={s.infoSub}>Your financial pulse, tracked</Text>
         <View style={s.infoDivider} />
         <View style={s.infoRow}>
           <Text style={s.infoLabel}>Backend</Text>
@@ -76,7 +124,7 @@ export default function ProfileScreen({ navigation }) {
               }
             }}
           >
-            <Text style={s.menuIcon}>{item.icon}</Text>
+            <Ionicons name={item.icon} size={20} color={COLORS.primary} style={{ marginRight: 12 }} />
             <Text style={s.menuLabel}>{item.label}</Text>
             <View style={s.menuRight}>
               {item.link && (
@@ -93,7 +141,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={s.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      <Text style={s.version}>AI Finance Tracker v1.00 • Built with React Native + Expo</Text>
+      <Text style={s.version}>Paisa Pulse v1.00 • Built with React Native + Expo</Text>
     </ScrollView>
   );
 }
@@ -102,7 +150,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content:   { padding: 16, paddingTop: 56, paddingBottom: 40 },
   profileCard: {
-    backgroundColor: '#0058be', // EventFi Core primary
+    backgroundColor: '#0058be',
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
@@ -118,6 +166,26 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)',
+    position: 'relative',
+    overflow: 'visible',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 38,
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#0058be',
   },
   avatarText: { fontSize: 28, fontWeight: '800', color: COLORS.white },
   name:   { fontSize: 22, fontWeight: '700', color: COLORS.white, marginBottom: 4 },

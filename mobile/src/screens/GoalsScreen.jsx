@@ -10,11 +10,26 @@ import { formatCurrency, COLORS } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { sendLocalNotification } from '../services/notificationService';
 
+const getGoalIcon = (iconStr) => {
+  const mapping = {
+    '🎯': 'flag-outline',
+    '🏠': 'home-outline',
+    '🚗': 'car-outline',
+    '✈️': 'airplane-outline',
+    '🎓': 'school-outline',
+    '💻': 'laptop-outline',
+    '💍': 'gift-outline',
+    '💰': 'cash-outline',
+    '🛡️': 'shield-checkmark-outline'
+  };
+  return mapping[iconStr] || iconStr || 'flag-outline';
+};
+
 function AddGoalModal({ visible, onClose, onSaved }) {
   const [title,        setTitle]        = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [currentAmount,setCurrentAmount]= useState('0');
-  const [icon,         setIcon]         = useState('🎯');
+  const [icon,         setIcon]         = useState('flag-outline');
   const [loading,      setLoading]      = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
@@ -30,7 +45,7 @@ function AddGoalModal({ visible, onClose, onSaved }) {
         currentAmount: parseFloat(currentAmount) || 0,
         icon,
       });
-      setTitle(''); setTargetAmount(''); setCurrentAmount('0'); setIcon('🎯');
+      setTitle(''); setTargetAmount(''); setCurrentAmount('0'); setIcon('flag-outline');
       onSaved();
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to create goal');
@@ -39,7 +54,10 @@ function AddGoalModal({ visible, onClose, onSaved }) {
     }
   };
 
-  const emojis = ['🎯', '🏠', '🚗', '✈️', '🎓', '💻', '💍', '💰', '🛡️'];
+  const goalIcons = [
+    'flag-outline', 'home-outline', 'car-outline', 'airplane-outline',
+    'school-outline', 'laptop-outline', 'gift-outline', 'cash-outline', 'shield-checkmark-outline'
+  ];
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -135,10 +153,10 @@ function AddGoalModal({ visible, onClose, onSaved }) {
 
             <Text style={ms.label}>ICON</Text>
             <View style={ms.emojiGrid}>
-              {emojis.map((e) => (
+              {goalIcons.map((e) => (
                 <TouchableOpacity key={e} onPress={() => setIcon(e)}
-                  style={[ms.emojiBtn, icon === e && ms.emojiBtnActive]}>
-                  <Text style={ms.emojiText}>{e}</Text>
+                  style={[ms.emojiBtn, icon === e && ms.emojiBtnActive, { alignItems: 'center', justifyContent: 'center' }]}>
+                  <Ionicons name={e} size={20} color={icon === e ? COLORS.primary : COLORS.onSurfaceVariant} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -283,7 +301,7 @@ export default function GoalsScreen({ navigation }) {
     try {
       await goalService.addContribution(goal._id, amount);
       await sendLocalNotification(
-        '🎯 Goal Progress Updated',
+        'Goal Progress Updated',
         `Contributed ${formatCurrency(amount)} to "${goal.title}"`
       );
       fetchGoals();
@@ -327,7 +345,7 @@ export default function GoalsScreen({ navigation }) {
       <View style={s.goalCard}>
         <View style={s.cardTop}>
           <View style={s.goalAvatar}>
-            <Text style={s.goalEmoji}>{item.icon || '🎯'}</Text>
+            <Ionicons name={getGoalIcon(item.icon)} size={20} color={COLORS.primary} />
           </View>
           <View style={s.goalInfo}>
             <Text style={s.goalTitle} numberOfLines={1}>{item.title}</Text>
@@ -350,7 +368,7 @@ export default function GoalsScreen({ navigation }) {
               <Text style={s.contributeBtnText}>+ Contribute</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(item)}>
-              <Text style={s.deleteBtnText}>🗑️</Text>
+              <Ionicons name="trash-outline" size={14} color={COLORS.red} />
             </TouchableOpacity>
           </View>
         </View>
@@ -388,7 +406,7 @@ export default function GoalsScreen({ navigation }) {
           <Text style={s.summaryLabel}>TOTAL SAVED</Text>
           <Text style={s.summaryAmount}>{formatCurrency(totalSaved)}</Text>
           <View style={s.summaryTrending}>
-            <Text style={s.trendingText}>Keep investing in your future 🚀</Text>
+            <Text style={s.trendingText}>Keep investing in your future</Text>
           </View>
         </View>
       </View>
@@ -404,7 +422,7 @@ export default function GoalsScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>🎯</Text>
+            <Ionicons name="flag-outline" size={40} color={COLORS.outline} style={{ marginBottom: 10 }} />
             <Text style={s.emptyText}>No savings goals yet</Text>
             <TouchableOpacity style={s.emptyBtn} onPress={() => setShowAdd(true)}>
               <Text style={s.emptyBtnText}>Create First Goal</Text>
@@ -486,7 +504,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 20,
-    backgroundColor: '#0058be', // EventFi Core primary gradient
+    backgroundColor: '#0058be', // Paisa Pulse Core primary gradient
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },

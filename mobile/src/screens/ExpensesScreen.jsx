@@ -190,7 +190,7 @@ export function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
           description: desc.trim(),
           date: new Date(date).toISOString()
         });
-        Alert.alert('✅ Success', 'Income updated');
+        Alert.alert('Success', 'Income updated');
       } else {
         await api.put(`/expenses/${expense._id}`, {
           description:   desc.trim(),
@@ -201,7 +201,7 @@ export function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
           eventId:       eventId || null,
           notes:         notes.trim(),
         });
-        Alert.alert('✅ Success', 'Transaction updated');
+        Alert.alert('Success', 'Transaction updated');
       }
       onSaved();
     } catch (err) {
@@ -338,14 +338,23 @@ export function ExpenseFormModal({ visible, onClose, onSaved, expense }) {
                   <Text style={ms.label}>TRANSACTION STATUS</Text>
                   <View style={ms.statusRow}>
                     {[
-                      { val: 'Paid', label: '✅ Completed / Paid' },
-                      { val: 'Pending', label: '⏳ Still Pending' }
+                      { val: 'Paid', label: 'Completed / Paid', icon: 'checkmark-circle-outline' },
+                      { val: 'Pending', label: 'Still Pending', icon: 'time-outline' }
                     ].map((s) => (
                       <TouchableOpacity
                         key={s.val}
                         onPress={() => setStatus(s.val)}
-                        style={[ms.statusBtn, status === s.val && ms.statusBtnActive]}
+                        style={[
+                          ms.statusBtn,
+                          status === s.val && ms.statusBtnActive,
+                          { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }
+                        ]}
                       >
+                        <Ionicons
+                          name={s.icon}
+                          size={14}
+                          color={status === s.val ? COLORS.primary : COLORS.onSurfaceVariant}
+                        />
                         <Text style={[ms.statusBtnText, status === s.val && ms.statusBtnActiveText]}>{s.label}</Text>
                       </TouchableOpacity>
                     ))}
@@ -480,7 +489,7 @@ export default function ExpensesScreen({ navigation }) {
     try {
       await expenseService.approveExpense(id);
       await sendLocalNotification(
-        '✅ Expense Approved',
+        'Expense Approved',
         'Your expense has been approved'
       );
       fetchAll();
@@ -557,20 +566,23 @@ export default function ExpensesScreen({ navigation }) {
         <View style={s.actionRow}>
           {(user?.role === 'Approver' || user?.role === 'FinanceAdmin') && item.approvalStatus === 'Pending' && item.type !== 'Income' && (
             <TouchableOpacity
-              style={[s.actionBtn, { backgroundColor: 'rgba(16, 185, 129, 0.05)' }]}
+              style={[s.actionBtn, { backgroundColor: 'rgba(16, 185, 129, 0.05)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }]}
               onPress={() => handleApprove(item._id)}>
-              <Text style={[s.actionText, { color: '#006c49' }]}>✓ Approve</Text>
+              <Ionicons name="checkmark-circle-outline" size={14} color="#006c49" />
+              <Text style={[s.actionText, { color: '#006c49' }]}>Approve</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[s.actionBtn, { backgroundColor: COLORS.surfaceContainerLow }]}
+            style={[s.actionBtn, { backgroundColor: COLORS.surfaceContainerLow, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }]}
             onPress={() => handleEdit(item)}>
-            <Text style={[s.actionText, { color: COLORS.primary }]}>✏️ Edit</Text>
+            <Ionicons name="create-outline" size={14} color={COLORS.primary} />
+            <Text style={[s.actionText, { color: COLORS.primary }]}>Edit</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[s.actionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}
+            style={[s.actionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.05)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }]}
             onPress={() => handleDelete(item)}>
-            <Text style={[s.actionText, { color: COLORS.red }]}>🗑️ Delete</Text>
+            <Ionicons name="trash-outline" size={14} color={COLORS.red} />
+            <Text style={[s.actionText, { color: COLORS.red }]}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -625,7 +637,7 @@ export default function ExpensesScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>💸</Text>
+            <Ionicons name="cash-outline" size={48} color={COLORS.outline} style={{ marginBottom: 12 }} />
             <Text style={s.emptyText}>No transactions found</Text>
           </View>
         }
@@ -793,6 +805,60 @@ const ms = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+});
+
+const ds = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11,28,48,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  content: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 360,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  arrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  title: { fontSize: 15, fontWeight: '700', color: COLORS.onSurface },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  weekText: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dayCell: {
+    width: '14.28%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  dayCellActive: { backgroundColor: COLORS.primary },
+  dayText: { fontSize: 13, fontWeight: '600', color: COLORS.onSurface },
+  dayTextActive: { color: COLORS.white, fontWeight: '700' },
+  closeBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceContainerLow,
+    alignItems: 'center',
+  },
+  closeBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
 });
 
 const s = StyleSheet.create({

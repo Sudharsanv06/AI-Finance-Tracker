@@ -66,13 +66,16 @@ function AddLoanModal({ visible, onClose, onSaved }) {
             <Text style={ms.label}>TYPE</Text>
             <View style={ms.typeRow}>
               {[
-                { val: 'taken', label: '⬇️ Loan Taken', desc: 'I borrowed' },
-                { val: 'given', label: '⬆️ Loan Given', desc: 'I lent' },
+                { val: 'taken', label: 'Loan Taken', icon: 'arrow-down-circle-outline', desc: 'I borrowed' },
+                { val: 'given', label: 'Loan Given', icon: 'arrow-up-circle-outline', desc: 'I lent' },
               ].map((t) => (
                 <TouchableOpacity key={t.val} onPress={() => setType(t.val)}
-                  style={[ms.typeBtn, type === t.val && ms.typeBtnActive]}>
-                  <Text style={ms.typeBtnLabel}>{t.label}</Text>
-                  <Text style={ms.typeBtnDesc}>{t.desc}</Text>
+                  style={[ms.typeBtn, type === t.val && ms.typeBtnActive, { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 }]}>
+                  <Ionicons name={t.icon} size={18} color={type === t.val ? COLORS.primary : COLORS.onSurfaceVariant} />
+                  <View style={{ flex: 1, alignItems: 'flex-start' }}>
+                    <Text style={ms.typeBtnLabel}>{t.label}</Text>
+                    <Text style={ms.typeBtnDesc}>{t.desc}</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -358,11 +361,11 @@ export default function LoansScreen({ navigation }) {
     try {
       await loanService.addPayment(loan._id, { amount });
       await sendLocalNotification(
-        '💳 EMI Payment Recorded',
+        'EMI Payment Recorded',
         `Repayment of ${formatCurrency(amount)} recorded for ${loan.title}`
       );
       fetchAll();
-      Alert.alert('✅', 'Payment recorded successfully');
+      Alert.alert('Success', 'Payment recorded successfully');
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to record payment');
       throw err;
@@ -386,9 +389,10 @@ export default function LoansScreen({ navigation }) {
               {item.type === 'taken' ? `From: ${item.loanFrom || '—'}` : `To: ${item.loanTo || '—'}`}
             </Text>
           </View>
-          <View style={[s.typeBadge, { backgroundColor: item.type === 'taken' ? '#fef2f2' : '#f0fdf4' }]}>
+          <View style={[s.typeBadge, { backgroundColor: item.type === 'taken' ? '#fef2f2' : '#f0fdf4', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+            <Ionicons name={item.type === 'taken' ? 'arrow-down-circle-outline' : 'arrow-up-circle-outline'} size={12} color={item.type === 'taken' ? COLORS.red : COLORS.green} />
             <Text style={[s.typeBadgeText, { color: item.type === 'taken' ? COLORS.red : COLORS.green }]}>
-              {item.type === 'taken' ? '⬇️ Taken' : '⬆️ Given'}
+              {item.type === 'taken' ? 'Taken' : 'Given'}
             </Text>
           </View>
         </View>
@@ -432,8 +436,9 @@ export default function LoansScreen({ navigation }) {
             <Text style={s.emiVal}>{item.interestRate || 0}% p.a.</Text>
           </View>
           {item.status === 'active' && (
-            <TouchableOpacity style={s.payBtn} onPress={() => { setSelectedLoan(item); setShowRepayment(true); }}>
-              <Text style={s.payBtnText}>💳 Pay EMI</Text>
+            <TouchableOpacity style={[s.payBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => { setSelectedLoan(item); setShowRepayment(true); }}>
+              <Ionicons name="card-outline" size={12} color={COLORS.white} />
+              <Text style={s.payBtnText}>Pay EMI</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -494,7 +499,7 @@ export default function LoansScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>🤝</Text>
+            <Ionicons name="people-outline" size={40} color={COLORS.outline} style={{ marginBottom: 10 }} />
             <Text style={s.emptyText}>No loans recorded</Text>
           </View>
         }

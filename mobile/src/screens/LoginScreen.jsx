@@ -20,9 +20,23 @@ export default function LoginScreen({ navigation }) {
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err) {
-      Alert.alert('Login Failed',
-        err.response?.data?.message || 'Invalid email or password'
-      );
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        Alert.alert(
+          'Server Starting Up',
+          'The server is waking up from sleep mode. Please wait a few seconds and try again.',
+          [{ text: 'OK' }]
+        );
+      } else if (!err.response) {
+        Alert.alert(
+          'Connection Error',
+          'Could not reach the server. Check your internet connection and try again.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Login Failed',
+          err.response?.data?.message || 'Invalid email or password'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -37,10 +51,10 @@ export default function LoginScreen({ navigation }) {
       {/* Logo */}
       <View style={s.logoWrap}>
         <View style={s.logoCircle}>
-          <Text style={s.logoText}>E</Text>
+          <Text style={s.logoText}>P</Text>
         </View>
-        <Text style={s.appName}>EventFi</Text>
-        <Text style={s.appSub}>Smart Finance Manager</Text>
+        <Text style={s.appName}>Paisa Pulse</Text>
+        <Text style={s.appSub}>Your financial pulse, tracked</Text>
       </View>
 
       {/* Card */}

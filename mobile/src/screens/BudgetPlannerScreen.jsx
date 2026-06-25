@@ -16,18 +16,18 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_ICONS = {
-  'Food & Dining': '🍽️',
-  'Transportation': '🚗',
-  'Shopping': '🛍️',
-  'Entertainment': '🎭',
-  'Health': '💊',
-  'Education': '📚',
-  'Utilities': '💡',
-  'Rent': '🏠',
-  'Groceries': '🛒',
-  'Travel': '✈️',
-  'Personal Care': '💆',
-  'Other': '📦'
+  'Food & Dining': 'restaurant-outline',
+  'Transportation': 'car-outline',
+  'Shopping': 'bag-outline',
+  'Entertainment': 'film-outline',
+  'Health': 'medkit-outline',
+  'Education': 'book-outline',
+  'Utilities': 'bulb-outline',
+  'Rent': 'home-outline',
+  'Groceries': 'cart-outline',
+  'Travel': 'airplane-outline',
+  'Personal Care': 'flower-outline',
+  'Other': 'cube-outline'
 };
 
 const MONTHS = [
@@ -286,7 +286,7 @@ export default function BudgetPlannerScreen({ navigation }) {
           <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
         ) : budgets.length === 0 ? (
           <View style={s.emptyContainer}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📊</Text>
+            <Ionicons name="stats-chart-outline" size={40} color={COLORS.outline} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>No budgets configured</Text>
             <Text style={s.emptySub}>Set a monthly spending limit for event categories.</Text>
             <TouchableOpacity style={s.emptyAddBtn} onPress={() => handleOpenModal()}>
@@ -304,13 +304,26 @@ export default function BudgetPlannerScreen({ navigation }) {
               <View key={b._id} style={s.budgetCard}>
                 <View style={s.budgetHeader}>
                   <View style={s.budgetHeaderLeft}>
-                    <Text style={{ fontSize: 20, marginRight: 8 }}>
-                      {CATEGORY_ICONS[b.category] || '📦'}
-                    </Text>
+                    <Ionicons
+                      name={CATEGORY_ICONS[b.category] || 'cube-outline'}
+                      size={20}
+                      color={COLORS.primary}
+                      style={{ marginRight: 8 }}
+                    />
                     <View>
                       <Text style={s.budgetCategoryName}>{b.category}</Text>
-                      {isOver && <Text style={s.alertBadgeText}>🚨 Over Budget!</Text>}
-                      {!isOver && isAlert && <Text style={[s.alertBadgeText, { color: '#d97706' }]}>⚠️ Nearing Limit</Text>}
+                      {isOver && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                          <Ionicons name="alert-circle" size={11} color={COLORS.red} />
+                          <Text style={s.alertBadgeText}>Over Budget!</Text>
+                        </View>
+                      )}
+                      {!isOver && isAlert && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                          <Ionicons name="warning-outline" size={11} color="#d97706" />
+                          <Text style={[s.alertBadgeText, { color: '#d97706' }]}>Nearing Limit</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                   <Text style={[s.budgetCardPct, { color: barFillColor }]}>{pct}%</Text>
@@ -394,7 +407,11 @@ export default function BudgetPlannerScreen({ navigation }) {
                         style={[s.categoryGridItem, category === c && s.categoryGridActiveItem]}
                         onPress={() => setCategory(c)}
                       >
-                        <Text style={{ fontSize: 18 }}>{CATEGORY_ICONS[c]}</Text>
+                        <Ionicons
+                          name={CATEGORY_ICONS[c]}
+                          size={18}
+                          color={category === c ? COLORS.white : COLORS.primary}
+                        />
                         <Text style={[s.categoryGridItemText, category === c && { color: COLORS.white }]}>
                           {c.split(' ')[0]}
                         </Text>

@@ -8,9 +8,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as incomeService from '../services/incomeService';
 import { formatCurrency, formatDate, COLORS } from '../utils/helpers';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const SOURCES = ['Salary','Freelance','Business','Rental','Investment Returns','Bonus','Gift','Other'];
-const SOURCE_ICONS = { Salary:'💼', Freelance:'💻', Business:'🏢', Rental:'🏠', 'Investment Returns':'📈', Bonus:'🎁', Gift:'🎀', Other:'💰' };
+const SOURCE_ICONS = { Salary:'cash-outline', Freelance:'laptop-outline', Business:'business-outline', Rental:'home-outline', 'Investment Returns':'trending-up-outline', Bonus:'gift-outline', Gift:'gift-outline', Other:'wallet-outline' };
 
 function AddIncomeModal({ visible, onClose, onSaved }) {
   const [source,  setSource]  = useState('Salary');
@@ -55,8 +56,8 @@ function AddIncomeModal({ visible, onClose, onSaved }) {
             <View style={ms.sourceGrid}>
               {SOURCES.map((src) => (
                 <TouchableOpacity key={src} onPress={() => setSource(src)}
-                  style={[ms.srcBtn, source === src && ms.srcBtnActive]}>
-                  <Text style={ms.srcIcon}>{SOURCE_ICONS[src]}</Text>
+                  style={[ms.srcBtn, source === src && ms.srcBtnActive, { alignItems: 'center', justifyContent: 'center' }]}>
+                  <Ionicons name={SOURCE_ICONS[src]} size={18} color={source === src ? COLORS.primary : COLORS.onSurfaceVariant} style={{ marginBottom: 4 }} />
                   <Text style={[ms.srcText, source === src && ms.srcTextActive]}>
                     {src}
                   </Text>
@@ -157,7 +158,7 @@ export default function IncomeScreen() {
   const renderItem = ({ item }) => (
     <View style={s.row}>
       <View style={s.rowIcon}>
-        <Text style={s.rowIconText}>{SOURCE_ICONS[item.source] || '💰'}</Text>
+        <Ionicons name={SOURCE_ICONS[item.source] || 'cash-outline'} size={18} color="#006c49" />
       </View>
       <View style={s.rowInfo}>
         <Text style={s.rowTitle}>{item.source}</Text>
@@ -216,7 +217,7 @@ export default function IncomeScreen() {
         }
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>💰</Text>
+            <Ionicons name="cash-outline" size={40} color={COLORS.outline} style={{ marginBottom: 10 }} />
             <Text style={s.emptyText}>No income recorded yet</Text>
           </View>
         }

@@ -14,16 +14,16 @@ const TYPES = [
 ];
 
 const TYPE_ICONS = {
-  SIP: '🔄',
-  FD: '🏦',
-  Stocks: '📈',
-  Gold: '🥇',
-  PPF: '🛡️',
-  NPS: '👴',
-  'Mutual Fund': '📊',
-  'Real Estate': '🏠',
-  Crypto: '₿',
-  Other: '💼',
+  SIP: 'repeat-outline',
+  FD: 'business-outline',
+  Stocks: 'trending-up-outline',
+  Gold: 'medal-outline',
+  PPF: 'shield-checkmark-outline',
+  NPS: 'people-outline',
+  'Mutual Fund': 'stats-chart-outline',
+  'Real Estate': 'home-outline',
+  Crypto: 'logo-bitcoin',
+  Other: 'wallet-outline',
 };
 
 const PIE_COLORS = [
@@ -247,8 +247,9 @@ export default function InvestmentsScreen({ navigation }) {
               return (
                 <View key={type} style={s.allocationRow}>
                   <View style={[s.colorIndicator, { backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }]} />
+                  <Ionicons name={TYPE_ICONS[type] || 'wallet-outline'} size={14} color={PIE_COLORS[idx % PIE_COLORS.length]} style={{ marginRight: 8 }} />
                   <Text style={s.allocationTypeLabel}>
-                    {TYPE_ICONS[type] || '💼'} {type}
+                    {type}
                   </Text>
                   <Text style={s.allocationPctText}>{allocationPct}%</Text>
                   <Text style={s.allocationAmtText}>{formatCurrency(val.currentValue)}</Text>
@@ -263,7 +264,7 @@ export default function InvestmentsScreen({ navigation }) {
           <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
         ) : investments.length === 0 ? (
           <View style={s.emptyContainer}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📈</Text>
+            <Ionicons name="trending-up-outline" size={40} color={COLORS.outline} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>No investments yet</Text>
             <Text style={s.emptySub}>Start tracking your investment portfolio and returns.</Text>
             <TouchableOpacity style={s.emptyAddBtn} onPress={() => handleOpenModal()}>
@@ -283,7 +284,7 @@ export default function InvestmentsScreen({ navigation }) {
                 <View style={s.invHeader}>
                   <View style={s.invHeaderLeft}>
                     <View style={s.invIcon}>
-                      <Text style={{ fontSize: 20 }}>{TYPE_ICONS[inv.type] || '💼'}</Text>
+                      <Ionicons name={TYPE_ICONS[inv.type] || 'wallet-outline'} size={20} color={COLORS.primary} />
                     </View>
                     <View>
                       <Text style={s.invTitle} numberOfLines={1}>{inv.name}</Text>
@@ -361,10 +362,10 @@ export default function InvestmentsScreen({ navigation }) {
                   {TYPES.map((t) => (
                     <TouchableOpacity
                       key={t}
-                      style={[s.categoryGridItem, type === t && s.categoryGridActiveItem]}
+                      style={[s.categoryGridItem, type === t && s.categoryGridActiveItem, { alignItems: 'center', justifyContent: 'center', gap: 4 }]}
                       onPress={() => setType(t)}
                     >
-                      <Text style={{ fontSize: 18 }}>{TYPE_ICONS[t]}</Text>
+                      <Ionicons name={TYPE_ICONS[t]} size={18} color={type === t ? COLORS.white : COLORS.primary} />
                       <Text style={[s.categoryGridItemText, type === t && { color: COLORS.white }]}>
                         {t}
                       </Text>

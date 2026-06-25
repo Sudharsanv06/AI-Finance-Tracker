@@ -408,7 +408,7 @@ export const exportExpensesCSV = async (req, res, next) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="eventfi-expenses-${Date.now()}.csv"`
+      `attachment; filename="paisapulse-expenses-${Date.now()}.csv"`
     );
     res.status(200).send(csv);
   } catch (error) {

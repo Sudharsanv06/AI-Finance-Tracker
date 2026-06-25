@@ -119,7 +119,7 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#0058be', // EventFi core primary Vibrant Blue
+    backgroundColor: '#0058be', // Paisa Pulse core primary Vibrant Blue
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',

@@ -1,9 +1,9 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Modal, FlatList, TextInput, ActivityIndicator, Alert,
-  SafeAreaView, ScrollView, Platform
+  SafeAreaView, ScrollView, Platform, KeyboardAvoidingView
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import * as expenseService from '../services/expenseService';
@@ -30,32 +30,42 @@ const TRANSFER_CATEGORIES = [
 ];
 
 const CATEGORY_ICONS = {
-  // Expenses
-  'Food & Dining': '🍽️',
-  'Transportation': '🚗',
-  'Shopping': '🛍️',
-  'Entertainment': '🎭',
-  'Health': '💊',
-  'Education': '📚',
-  'Utilities': '💡',
-  'Rent': '🏠',
-  'Groceries': '🛒',
-  'Travel': '✈️',
-  'Personal Care': '💆',
-  'Other': '📦',
-  // Income
-  'Salary': '💰',
-  'Freelance': '💻',
-  'Investments': '📈',
-  'Gifts': '🎁',
-  'Refunds': '🔄',
-  // Transfer
-  'Bank Transfer': '🏦',
-  'Self Transfer': '🔄',
-  'Mobile Wallet': '📱',
-  'Cash Withdrawal': '💵',
-  'Card to Card': '💳',
+  'Food & Dining': 'restaurant-outline',
+  'Transportation': 'car-outline',
+  'Shopping': 'bag-outline',
+  'Entertainment': 'film-outline',
+  'Health': 'medkit-outline',
+  'Education': 'book-outline',
+  'Utilities': 'bulb-outline',
+  'Rent': 'home-outline',
+  'Groceries': 'cart-outline',
+  'Travel': 'airplane-outline',
+  'Personal Care': 'flower-outline',
+  'Other': 'cube-outline',
+  'Salary': 'cash-outline',
+  'Freelance': 'laptop-outline',
+  'Investments': 'trending-up-outline',
+  'Gifts': 'gift-outline',
+  'Refunds': 'refresh-outline',
+  'Bank Transfer': 'business-outline',
+  'Self Transfer': 'swap-horizontal-outline',
+  'Mobile Wallet': 'wallet-outline',
+  'Cash Withdrawal': 'cash-outline',
+  'Card to Card': 'card-outline',
 };
+
+const PAYMENT_METHODS = [
+  { key: 'Cash', label: 'Cash', icon: 'cash-outline' },
+  { key: 'Credit Card', label: 'Credit Card', icon: 'card-outline' },
+  { key: 'UPI', label: 'UPI', icon: 'phone-portrait-outline' },
+  { key: 'Bank Transfer', label: 'Net Banking / Bank Transfer', icon: 'business-outline' },
+  { key: 'Cheque', label: 'Cheque', icon: 'document-text-outline' },
+  { key: 'Other', label: 'Other / Wallet', icon: 'wallet-outline' },
+];
+
+const UPI_QUICK_PICKS = [
+  'GPay', 'PhonePe', 'BHIM UPI', 'Amazon Pay UPI', 'Navi UPI', 'Supermoney UPI',
+];
 
 // ── Custom Date Picker Modal ──────────────────────────────────────────────────
 function CustomDatePickerModal({ visible, date, onSelect, onClose }) {
@@ -98,56 +108,56 @@ function CustomDatePickerModal({ visible, date, onSelect, onClose }) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
-        <View style={s.modalHeader}>
-          <TouchableOpacity onPress={prevMonth} style={{ padding: 8 }}>
-            <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-          <Text style={s.modalTitle}>{MONTH_NAMES[currentMonth]} {currentYear}</Text>
-          <TouchableOpacity onPress={nextMonth} style={{ padding: 8 }}>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={ds.weekRow}>
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-              <Text key={d} style={ds.weekText}>{d}</Text>
-            ))}
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={ds.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={ds.content} onPress={() => {}}>
+          <View style={ds.header}>
+            <TouchableOpacity onPress={prevMonth} style={ds.arrow}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+            <Text style={ds.title}>{MONTH_NAMES[currentMonth]} {currentYear}</Text>
+            <TouchableOpacity onPress={nextMonth} style={ds.arrow}>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
           </View>
-          <View style={ds.daysGrid}>
-            {getDays().map((day, idx) => (
-              <TouchableOpacity
-                key={idx}
-                disabled={!day}
-                style={[
-                  ds.dayCell,
-                  day && date.toDateString() === day.toDateString() && ds.dayCellActive
-                ]}
-                onPress={() => {
-                  onSelect(day);
-                  onClose();
-                }}
-              >
-                <Text style={[
-                  ds.dayText,
-                  !day && { color: 'transparent' },
-                  day && date.toDateString() === day.toDateString() && ds.dayTextActive
-                ]}>
-                  {day ? day.getDate() : ''}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
 
-        <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
-          <TouchableOpacity style={[ds.closeBtn, { marginTop: 0 }]} onPress={onClose}>
+          <View>
+            <View style={ds.weekRow}>
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                <Text key={d} style={ds.weekText}>{d}</Text>
+              ))}
+            </View>
+            <View style={ds.daysGrid}>
+              {getDays().map((day, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  disabled={!day}
+                  style={[
+                    ds.dayCell,
+                    day && date.toDateString() === day.toDateString() && ds.dayCellActive
+                  ]}
+                  onPress={() => {
+                    onSelect(day);
+                    onClose();
+                  }}
+                >
+                  <Text style={[
+                    ds.dayText,
+                    !day && { color: 'transparent' },
+                    day && date.toDateString() === day.toDateString() && ds.dayTextActive
+                  ]}>
+                    {day ? day.getDate() : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity style={ds.closeBtn} onPress={onClose}>
             <Text style={ds.closeBtnText}>Cancel</Text>
           </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -167,7 +177,7 @@ export default function AddTransactionScreen({ navigation, route }) {
   }, [user?._id]);
 
   const [txType, setTxType] = useState('Expense'); // 'Income' | 'Expense' | 'Transfer'
-  const [amount, setAmount] = useState('0');
+  const [amount, setAmount] = useState(''); // real TextInput now — empty shows placeholder "0"
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Other');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -178,9 +188,16 @@ export default function AddTransactionScreen({ navigation, route }) {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
 
-  // Modals visibility
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentDetail, setPaymentDetail] = useState(''); // e.g. "GPay", "Paytm Wallet"
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [customDetail, setCustomDetail] = useState('');
+
+  const amountInputRef = useRef(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -189,7 +206,6 @@ export default function AddTransactionScreen({ navigation, route }) {
         const activeEvents = res.data?.data?.events || [];
         setEvents(activeEvents);
 
-        // Pre-select if passed in route params
         if (route.params?.eventId) {
           setSelectedEventId(route.params.eventId);
         }
@@ -204,7 +220,6 @@ export default function AddTransactionScreen({ navigation, route }) {
     }
   }, [route.params]);
 
-  // Update default category when transaction type changes
   useEffect(() => {
     if (route.params?.category && route.params?.type === txType) {
       setCategory(route.params.category);
@@ -219,28 +234,17 @@ export default function AddTransactionScreen({ navigation, route }) {
     }
   }, [txType, route.params]);
 
-  const handleKeyPress = (val) => {
-    if (val === 'backspace') {
-      if (amount.length <= 1) {
-        setAmount('0');
-      } else {
-        setAmount(amount.slice(0, -1));
-      }
-      return;
+  const handleAmountChange = (text) => {
+    let cleaned = text.replace(/[^0-9.]/g, '');
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      cleaned = parts[0] + '.' + parts.slice(1).join('');
     }
-
-    if (val === '.') {
-      if (amount.includes('.')) return;
-      setAmount(amount + '.');
-      return;
+    const [intPart, decPart] = cleaned.split('.');
+    if (decPart && decPart.length > 2) {
+      cleaned = intPart + '.' + decPart.slice(0, 2);
     }
-
-    if (amount === '0') {
-      setAmount(val);
-    } else {
-      if (amount.includes('.') && amount.split('.')[1].length >= 2) return;
-      setAmount(amount + val);
-    }
+    setAmount(cleaned);
   };
 
   const handleSubmit = async () => {
@@ -251,7 +255,7 @@ export default function AddTransactionScreen({ navigation, route }) {
         [{ text: 'OK' }]
       );
     }
-    
+
     if (!description || !description.trim()) {
       return Alert.alert('Error', 'Description is required');
     }
@@ -259,6 +263,10 @@ export default function AddTransactionScreen({ navigation, route }) {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       return Alert.alert('Error', 'Valid amount is required');
+    }
+
+    if (txType !== 'Income' && !paymentMethod) {
+      return Alert.alert('Error', 'Please select a payment method');
     }
 
     const finalEventId = selectedEventId && selectedEventId !== '' ? selectedEventId : null;
@@ -277,18 +285,19 @@ export default function AddTransactionScreen({ navigation, route }) {
           description: description.trim(),
           amount: numAmount,
           category,
-          paymentMethod: 'Cash',
+          paymentMethod,
+          notes: paymentDetail ? `Paid via ${paymentDetail}` : undefined,
           date: selectedDate.toISOString(),
           approvalStatus: status === 'Paid' ? 'Paid' : 'Pending',
           eventId: finalEventId
         });
       } else {
-        // Transfer
         await expenseService.createExpense({
           description: `Transfer: ${description.trim()}`,
           amount: numAmount,
           category,
-          paymentMethod: 'Bank Transfer',
+          paymentMethod,
+          notes: paymentDetail ? `Paid via ${paymentDetail}` : undefined,
           date: selectedDate.toISOString(),
           approvalStatus: status === 'Paid' ? 'Paid' : 'Pending',
           eventId: finalEventId
@@ -304,14 +313,15 @@ export default function AddTransactionScreen({ navigation, route }) {
     }
   };
 
-  const categoriesList = 
-    txType === 'Income' ? INCOME_SOURCES : 
-    txType === 'Transfer' ? TRANSFER_CATEGORIES : 
+  const categoriesList =
+    txType === 'Income' ? INCOME_SOURCES :
+    txType === 'Transfer' ? TRANSFER_CATEGORIES :
     EXPENSE_CATEGORIES;
+
+  const selectedPayment = PAYMENT_METHODS.find(p => p.key === paymentMethod);
 
   return (
     <SafeAreaView style={s.container}>
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
           <Ionicons name="chevron-back" size={24} color={COLORS.onSurface} />
@@ -320,269 +330,357 @@ export default function AddTransactionScreen({ navigation, route }) {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
-        {!balancesConfigured && (
-          <View style={s.warningBanner}>
-            <Text style={s.warningBannerText}>
-              ⚠️ Starting balances are not configured. Please set them on the Home dashboard first before adding transactions.
-            </Text>
-          </View>
-        )}
-        {/* Tab Selector */}
-        <View style={s.tabContainer}>
-          {['Income', 'Expense', 'Transfer'].map((t) => (
-            <TouchableOpacity
-              key={t}
-              onPress={() => setTxType(t)}
-              style={[s.tabButton, txType === t && s.tabActiveButton]}
-            >
-              <Text style={[s.tabText, txType === t && s.tabActiveText]}>
-                {t}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
+          {!balancesConfigured && (
+            <View style={[s.warningBanner, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+              <Ionicons name="warning-outline" size={16} color="#b45309" />
+              <Text style={[s.warningBannerText, { flex: 1, textAlign: 'left' }]}>
+                Starting balances are not configured. Please set them on the Home dashboard first before adding transactions.
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Amount Input Display */}
-        <View style={s.amountContainer}>
-          <Text style={s.amountLabel}>Amount</Text>
-          <Text style={s.amountText}>₹{amount}</Text>
-        </View>
-
-        {/* Form Details */}
-        <View style={s.formContainer}>
-          {/* Category Dropdown Selector */}
-          <TouchableOpacity
-            style={s.formSelector}
-            onPress={() => setShowCategoryModal(true)}
-          >
-            <View style={s.selectorLeft}>
-              <View style={s.iconWrapper}>
-                <Text style={{ fontSize: 18 }}>
-                  {CATEGORY_ICONS[category] || '📦'}
-                </Text>
-              </View>
-              <Text style={s.selectorLabel}>{category}</Text>
             </View>
-            <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
+          )}
+
+          <View style={s.tabContainer}>
+            {['Income', 'Expense', 'Transfer'].map((t) => (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setTxType(t)}
+                style={[s.tabButton, txType === t && s.tabActiveButton]}
+              >
+                <Text style={[s.tabText, txType === t && s.tabActiveText]}>
+                  {t}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={s.amountContainer}
+            activeOpacity={1}
+            onPress={() => amountInputRef.current?.focus()}
+          >
+            <Text style={s.amountLabel}>Amount</Text>
+            <View style={s.amountInputRow}>
+              <Text style={s.amountCurrency}>₹</Text>
+              <TextInput
+                ref={amountInputRef}
+                style={s.amountInput}
+                value={amount}
+                onChangeText={handleAmountChange}
+                placeholder="0"
+                placeholderTextColor={COLORS.outline}
+                keyboardType="decimal-pad"
+                selectionColor={COLORS.primary}
+                cursorColor={COLORS.primary}
+                maxLength={12}
+              />
+            </View>
           </TouchableOpacity>
 
-          {/* Link to Event Selector (only for Expense) */}
-          {txType === 'Expense' && (
+          <View style={s.formContainer}>
             <TouchableOpacity
               style={s.formSelector}
-              onPress={() => setShowEventModal(true)}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <View style={s.selectorLeft}>
+                <View style={s.iconWrapper}>
+                  <Ionicons name={CATEGORY_ICONS[category] || 'cube-outline'} size={18} color={COLORS.primary} />
+                </View>
+                <Text style={s.selectorLabel}>{category}</Text>
+              </View>
+              <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            {txType !== 'Income' && (
+              <TouchableOpacity
+                style={s.formSelector}
+                onPress={() => setShowPaymentModal(true)}
+              >
+                <View style={s.selectorLeft}>
+                  <View style={s.iconWrapper}>
+                    <Ionicons
+                      name={selectedPayment?.icon || 'wallet-outline'}
+                      size={18}
+                      color={COLORS.primary}
+                    />
+                  </View>
+                  <Text style={s.selectorLabel} numberOfLines={1}>
+                    {selectedPayment
+                      ? `${selectedPayment.label}${paymentDetail ? ' · ' + paymentDetail : ''}`
+                      : 'Select Payment Method'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
+              </TouchableOpacity>
+            )}
+
+            {txType === 'Expense' && (
+              <TouchableOpacity
+                style={s.formSelector}
+                onPress={() => setShowEventModal(true)}
+              >
+                <View style={s.selectorLeft}>
+                  <View style={s.iconWrapper}>
+                    <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
+                  </View>
+                  <Text style={s.selectorLabel} numberOfLines={1}>
+                    {selectedEventId
+                      ? (events.find(e => e._id === selectedEventId)?.name || 'Linked Event')
+                      : 'Link to Event (Optional)'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {selectedEventId && (
+                    <TouchableOpacity onPress={() => setSelectedEventId(null)} style={{ marginRight: 10 }}>
+                      <Ionicons name="close-circle" size={18} color={COLORS.outline} />
+                    </TouchableOpacity>
+                  )}
+                  <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={s.formSelector}
+              onPress={() => setShowDatePicker(true)}
             >
               <View style={s.selectorLeft}>
                 <View style={s.iconWrapper}>
                   <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
                 </View>
-                <Text style={s.selectorLabel} numberOfLines={1}>
-                  {selectedEventId
-                    ? (events.find(e => e._id === selectedEventId)?.name || 'Linked Event')
-                    : 'Link to Event (Optional)'}
+                <Text style={s.selectorLabel}>
+                  {selectedDate.toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {selectedEventId && (
-                  <TouchableOpacity onPress={() => setSelectedEventId(null)} style={{ marginRight: 10 }}>
-                    <Ionicons name="close-circle" size={18} color={COLORS.outline} />
-                  </TouchableOpacity>
-                )}
-                <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
-              </View>
+              <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
             </TouchableOpacity>
-          )}
 
-          {/* Date Selector Display */}
-          <TouchableOpacity
-            style={s.formSelector}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <View style={s.selectorLeft}>
-              <View style={s.iconWrapper}>
-                <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
-              </View>
-              <Text style={s.selectorLabel}>
-                {selectedDate.toLocaleDateString('en-IN', {
-                  day: 'numeric', month: 'short', year: 'numeric'
-                })}
-              </Text>
+            <View style={s.inputWrapper}>
+              <Ionicons name="document-text-outline" size={18} color={COLORS.primary} style={s.inputIcon} />
+              <TextInput
+                style={s.textInput}
+                placeholder="Enter description..."
+                placeholderTextColor={COLORS.outline}
+                value={description}
+                onChangeText={setDescription}
+                maxLength={80}
+              />
             </View>
-            <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
-          </TouchableOpacity>
 
-          {/* Description Text Input */}
-          <View style={s.inputWrapper}>
-            <Ionicons name="document-text-outline" size={18} color={COLORS.primary} style={s.inputIcon} />
-            <TextInput
-              style={s.textInput}
-              placeholder="Enter description..."
-              placeholderTextColor={COLORS.outline}
-              value={description}
-              onChangeText={setDescription}
-              maxLength={80}
-            />
+            {txType !== 'Income' && (
+              <View style={s.statusContainer}>
+                <Text style={s.statusLabel}>STATUS</Text>
+                <View style={s.statusRow}>
+                  {[
+                    { val: 'Paid', label: 'Completed / Paid', icon: 'checkmark-circle-outline' },
+                    { val: 'Pending', label: 'Still Pending', icon: 'time-outline' }
+                  ].map((st) => (
+                    <TouchableOpacity
+                      key={st.val}
+                      onPress={() => setStatus(st.val)}
+                      style={[
+                        s.statusBtn,
+                        status === st.val && s.statusBtnActive,
+                        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }
+                      ]}
+                    >
+                      <Ionicons
+                        name={st.icon}
+                        size={14}
+                        color={status === st.val ? COLORS.primary : COLORS.onSurfaceVariant}
+                      />
+                      <Text style={[s.statusBtnText, status === st.val && s.statusBtnActiveText]}>
+                        {st.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
-          {/* Status Selector (For Expenses and Transfers) */}
-          {txType !== 'Income' && (
-            <View style={s.statusContainer}>
-              <Text style={s.statusLabel}>STATUS</Text>
-              <View style={s.statusRow}>
-                {[
-                  { val: 'Paid', label: '✅ Completed / Paid' },
-                  { val: 'Pending', label: '⏳ Still Pending' }
-                ].map((st) => (
+          <TouchableOpacity
+            style={[s.submitBtn, loading && { opacity: 0.7 }]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={s.submitBtnText}>Add {txType}</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
+            <Text style={s.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Category Select Popup */}
+      <Modal transparent visible={showCategoryModal} animationType="fade" onRequestClose={() => setShowCategoryModal(false)}>
+        <TouchableOpacity style={s.popupBackdrop} activeOpacity={1} onPress={() => setShowCategoryModal(false)}>
+          <TouchableOpacity activeOpacity={1} style={s.popupCard} onPress={() => {}}>
+            <View style={s.popupHeader}>
+              <Text style={s.popupTitle}>Select Category</Text>
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                <Ionicons name="close" size={20} color={COLORS.onSurfaceVariant} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ height: Math.min(categoriesList.length * 48, 340) }} showsVerticalScrollIndicator={false}>
+              {categoriesList.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={s.popupItem}
+                  onPress={() => {
+                    setCategory(item);
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <Ionicons name={CATEGORY_ICONS[item] || 'cube-outline'} size={20} color={COLORS.primary} style={{ marginRight: 14 }} />
+                  <Text style={s.popupItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Payment Method Select Popup */}
+      <Modal transparent visible={showPaymentModal} animationType="fade" onRequestClose={() => setShowPaymentModal(false)}>
+        <TouchableOpacity style={s.popupBackdrop} activeOpacity={1} onPress={() => setShowPaymentModal(false)}>
+          <TouchableOpacity activeOpacity={1} style={s.popupCard} onPress={() => {}}>
+            <View style={s.popupHeader}>
+              <Text style={s.popupTitle}>Payment Method</Text>
+              <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+                <Ionicons name="close" size={20} color={COLORS.onSurfaceVariant} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ height: Math.min(PAYMENT_METHODS.length * 48, 340) }} showsVerticalScrollIndicator={false}>
+              {PAYMENT_METHODS.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={s.popupItem}
+                  onPress={() => {
+                    setPaymentMethod(item.key);
+                    setPaymentDetail('');
+                    setCustomDetail('');
+                    if (item.key === 'UPI') {
+                      setShowPaymentModal(false);
+                      setShowUpiModal(true);
+                    } else {
+                      setShowPaymentModal(false);
+                    }
+                  }}
+                >
+                  <Ionicons name={item.icon} size={18} color={COLORS.primary} style={{ marginRight: 14 }} />
+                  <Text style={s.popupItemText}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* UPI App Picker Popup */}
+      <Modal transparent visible={showUpiModal} animationType="fade" onRequestClose={() => setShowUpiModal(false)}>
+        <TouchableOpacity style={s.popupBackdrop} activeOpacity={1} onPress={() => setShowUpiModal(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', alignItems: 'center' }}>
+            <TouchableOpacity activeOpacity={1} style={s.popupCard} onPress={() => {}}>
+              <View style={s.popupHeader}>
+                <Text style={s.popupTitle}>Which UPI app?</Text>
+                <TouchableOpacity onPress={() => setShowUpiModal(false)}>
+                  <Ionicons name="close" size={20} color={COLORS.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                {UPI_QUICK_PICKS.map((app) => (
                   <TouchableOpacity
-                    key={st.val}
-                    onPress={() => setStatus(st.val)}
-                    style={[s.statusBtn, status === st.val && s.statusBtnActive]}
+                    key={app}
+                    onPress={() => {
+                      setPaymentDetail(app);
+                      setShowUpiModal(false);
+                    }}
+                    style={[s.upiChip, paymentDetail === app && s.upiChipActive]}
                   >
-                    <Text style={[s.statusBtnText, status === st.val && s.statusBtnActiveText]}>
-                      {st.label}
+                    <Text style={[s.upiChipText, paymentDetail === app && { color: COLORS.white }]}>
+                      {app}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-          )}
-        </View>
-
-        {/* Numeric Keypad Grid */}
-        <View style={s.keypadContainer}>
-          <View style={s.keypadRow}>
-            {['1', '2', '3'].map((k) => (
-              <TouchableOpacity key={k} style={s.keypadKey} onPress={() => handleKeyPress(k)}>
-                <Text style={s.keypadKeyText}>{k}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={s.keypadRow}>
-            {['4', '5', '6'].map((k) => (
-              <TouchableOpacity key={k} style={s.keypadKey} onPress={() => handleKeyPress(k)}>
-                <Text style={s.keypadKeyText}>{k}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={s.keypadRow}>
-            {['7', '8', '9'].map((k) => (
-              <TouchableOpacity key={k} style={s.keypadKey} onPress={() => handleKeyPress(k)}>
-                <Text style={s.keypadKeyText}>{k}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={s.keypadRow}>
-            <TouchableOpacity style={s.keypadKey} onPress={() => handleKeyPress('.')}>
-              <Text style={s.keypadKeyText}>.</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.keypadKey} onPress={() => handleKeyPress('0')}>
-              <Text style={s.keypadKeyText}>0</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.keypadKey} onPress={() => handleKeyPress('backspace')}>
-              <Ionicons name="backspace-outline" size={24} color={COLORS.onSurface} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Add Button */}
-        <TouchableOpacity
-          style={[s.submitBtn, loading && { opacity: 0.7 }]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <Text style={s.submitBtnText}>Add {txType}</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Cancel Button */}
-        <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
-          <Text style={s.cancelBtnText}>Cancel</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Category Select Modal */}
-      <Modal visible={showCategoryModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCategoryModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>Select Category</Text>
-            <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-              <Ionicons name="close" size={24} color={COLORS.onSurface} />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={categoriesList}
-            keyExtractor={(item) => item}
-            style={{ flex: 1 }}
-            renderItem={({ item }) => (
+              <Text style={s.statusLabel}>OTHER UPI APP / ACCOUNT</Text>
+              <View style={[s.inputWrapper, { marginTop: 6 }]}>
+                <Ionicons name="create-outline" size={18} color={COLORS.primary} style={s.inputIcon} />
+                <TextInput
+                  style={s.textInput}
+                  placeholder="e.g. Paytm UPI, IDFC UPI..."
+                  placeholderTextColor={COLORS.outline}
+                  value={customDetail}
+                  onChangeText={setCustomDetail}
+                />
+              </View>
               <TouchableOpacity
-                style={s.modalItem}
+                style={[s.submitBtn, { marginTop: 14 }]}
                 onPress={() => {
-                  setCategory(item);
-                  setShowCategoryModal(false);
+                  if (customDetail.trim()) setPaymentDetail(customDetail.trim());
+                  setShowUpiModal(false);
                 }}
               >
-                <Text style={s.modalItemEmoji}>{CATEGORY_ICONS[item] || '📦'}</Text>
-                <Text style={s.modalItemText}>{item}</Text>
+                <Text style={s.submitBtnText}>Confirm</Text>
               </TouchableOpacity>
-            )}
-          />
-          <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
-            <TouchableOpacity style={[s.cancelBtn, { marginVertical: 0 }]} onPress={() => setShowCategoryModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-          </View>
-        </SafeAreaView>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
       </Modal>
 
-      {/* Event Select Modal */}
-      <Modal visible={showEventModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEventModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>Select Event</Text>
-            <TouchableOpacity onPress={() => setShowEventModal(false)}>
-              <Ionicons name="close" size={24} color={COLORS.onSurface} />
-            </TouchableOpacity>
-          </View>
-          {events.length === 0 ? (
-            <View style={{ flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: COLORS.onSurfaceVariant, fontSize: 14 }}>No active events found</Text>
+      {/* Event Select Popup */}
+      <Modal transparent visible={showEventModal} animationType="fade" onRequestClose={() => setShowEventModal(false)}>
+        <TouchableOpacity style={s.popupBackdrop} activeOpacity={1} onPress={() => setShowEventModal(false)}>
+          <TouchableOpacity activeOpacity={1} style={s.popupCard} onPress={() => {}}>
+            <View style={s.popupHeader}>
+              <Text style={s.popupTitle}>Select Event</Text>
+              <TouchableOpacity onPress={() => setShowEventModal(false)}>
+                <Ionicons name="close" size={20} color={COLORS.onSurfaceVariant} />
+              </TouchableOpacity>
             </View>
-          ) : (
-            <FlatList
-              data={events}
-              keyExtractor={(item) => item._id}
-              style={{ flex: 1 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={s.modalItem}
-                  onPress={() => {
-                    setSelectedEventId(item._id);
-                    setShowEventModal(false);
-                  }}
-                >
-                  <Text style={s.modalItemEmoji}>🎯</Text>
-                  <View>
-                    <Text style={s.modalItemText}>{item.name}</Text>
-                    {item.totalBudget && (
-                      <Text style={{ fontSize: 12, color: COLORS.outline, marginTop: 2 }}>
-                        Budget: {formatCurrency(item.totalBudget)}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          )}
-          <View style={{ padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: COLORS.outlineVariant, backgroundColor: COLORS.white }}>
-            <TouchableOpacity style={[s.cancelBtn, { marginVertical: 0 }]} onPress={() => setShowEventModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
+            {events.length === 0 ? (
+              <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                <Text style={{ color: COLORS.onSurfaceVariant, fontSize: 14 }}>No active events found</Text>
+              </View>
+            ) : (
+              <ScrollView style={{ height: Math.min(events.length * 56, 340) }} showsVerticalScrollIndicator={false}>
+                {events.map((item) => (
+                  <TouchableOpacity
+                    key={item._id}
+                    style={s.popupItem}
+                    onPress={() => {
+                      setSelectedEventId(item._id);
+                      setShowEventModal(false);
+                    }}
+                  >
+                    <Ionicons name="flag-outline" size={20} color={COLORS.primary} style={{ marginRight: 14 }} />
+                    <View>
+                      <Text style={s.popupItemText}>{item.name}</Text>
+                      {item.totalBudget && (
+                        <Text style={{ fontSize: 12, color: COLORS.outline, marginTop: 2 }}>
+                          Budget: {formatCurrency(item.totalBudget)}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       <CustomDatePickerModal
@@ -631,8 +729,7 @@ const s = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.onSurface },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
-  
-  // Tab selector styles
+
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(194, 198, 214, 0.25)',
@@ -658,10 +755,9 @@ const s = StyleSheet.create({
     color: COLORS.white,
   },
 
-  // Amount display
   amountContainer: {
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 14,
   },
   amountLabel: {
     fontSize: 13,
@@ -669,13 +765,26 @@ const s = StyleSheet.create({
     marginBottom: 4,
     fontWeight: '600',
   },
-  amountText: {
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  amountCurrency: {
     fontSize: 40,
     fontWeight: '800',
     color: COLORS.onSurface,
+    marginRight: 4,
+  },
+  amountInput: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    padding: 0,
+    minWidth: 80,
+    textAlign: 'left',
   },
 
-  // Form wrappers
   formContainer: {
     marginVertical: 10,
     gap: 12,
@@ -709,8 +818,7 @@ const s = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.onSurface,
   },
-  
-  // Input
+
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -730,7 +838,6 @@ const s = StyleSheet.create({
     padding: 0,
   },
 
-  // Status Style
   statusContainer: {
     marginTop: 4,
   },
@@ -767,37 +874,6 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Keypad
-  keypadContainer: {
-    marginVertical: 16,
-    gap: 10,
-  },
-  keypadRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  keypadKey: {
-    flex: 1,
-    height: 54,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(194, 198, 214, 0.25)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  keypadKeyText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-
-  // Buttons
   submitBtn: {
     backgroundColor: '#0058be',
     borderRadius: 18,
@@ -830,7 +906,6 @@ const s = StyleSheet.create({
     color: COLORS.primary,
   },
 
-  // Modal styling
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11,28,48,0.4)',
@@ -865,10 +940,6 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(194, 198, 214, 0.15)',
   },
-  modalItemEmoji: {
-    fontSize: 20,
-    marginRight: 16,
-  },
   modalItemText: {
     fontSize: 15,
     fontWeight: '600',
@@ -889,5 +960,61 @@ const s = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 16,
+  },
+
+  popupBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(11,28,48,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  popupCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 16,
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  popupTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+  },
+  popupItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(194, 198, 214, 0.2)',
+  },
+  popupItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.onSurface,
+  },
+  upiChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.white,
+  },
+  upiChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  upiChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.onSurfaceVariant,
   },
 });

@@ -1,67 +1,20 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Platform } from 'react-native';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// TEMPORARY STUB — expo-notifications disabled for Expo Go testing.
+// Real push/local notifications require a development build, not Expo Go.
+// Restore the real implementation once we're testing via `eas build --profile development`.
 
 export const registerForPushNotifications = async () => {
-  if (!Device.isDevice) return null;
-  const { status: existingStatus } =
-    await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  if (finalStatus !== 'granted') return null;
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'EventFi Alerts',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#004643',
-    });
-  }
-  return true;
+  console.log('Notifications disabled in this build.');
+  return null;
 };
 
-export const sendLocalNotification = async (title, body, data = {}) => {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body, data, sound: true },
-      trigger: null,
-    });
-  } catch (e) {
-    console.log('Notification error:', e);
-  }
+export const sendLocalNotification = async () => {
+  return null;
 };
 
-export const scheduleBillReminder = async (
-  billTitle, amount, daysUntilDue
-) => {
-  if (daysUntilDue <= 0) return;
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `💳 Bill Due Soon: ${billTitle}`,
-        body: `₹${amount} is due in ${daysUntilDue} day${
-          daysUntilDue !== 1 ? 's' : ''
-        }`,
-        sound: true,
-      },
-      trigger: { seconds: Math.max(daysUntilDue * 24 * 60 * 60, 60) },
-    });
-  } catch (e) {
-    console.log('Schedule error:', e);
-  }
+export const scheduleBillReminder = async () => {
+  return null;
 };
 
 export const cancelAllNotifications = async () => {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  return null;
 };

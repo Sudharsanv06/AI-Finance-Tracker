@@ -16,18 +16,33 @@ const BILL_CATEGORIES = [
 ];
 
 const CATEGORY_ICONS = {
-  'Rent': '🏠',
-  'Electricity': '💡',
-  'Water': '💧',
-  'Internet': '📶',
-  'Phone': '📱',
-  'Insurance': '🛡️',
-  'Subscription': '📺',
-  'EMI': '💳',
-  'Gas': '🔥',
-  'Credit Card': '💰',
-  'Other': '📄',
+  'Rent': 'home-outline',
+  'Electricity': 'bulb-outline',
+  'Water': 'water-outline',
+  'Internet': 'wifi-outline',
+  'Phone': 'phone-portrait-outline',
+  'Insurance': 'shield-checkmark-outline',
+  'Subscription': 'tv-outline',
+  'EMI': 'card-outline',
+  'Gas': 'flame-outline',
+  'Credit Card': 'cash-outline',
+  'Other': 'document-text-outline',
 };
+
+const PAYMENT_METHODS = [
+  { key: 'Cash', label: 'Cash', icon: 'cash-outline' },
+  { key: 'Credit Card', label: 'Credit Card', icon: 'card-outline' },
+  { key: 'UPI', label: 'UPI', icon: 'phone-portrait-outline' },
+  { key: 'Bank Transfer', label: 'Net Banking / Bank Transfer', icon: 'business-outline' },
+  { key: 'Cheque', label: 'Cheque', icon: 'document-text-outline' },
+  { key: 'Other', label: 'Other / Wallet', icon: 'wallet-outline' },
+];
+
+const UPI_QUICK_PICKS = [
+  'GPay', 'PhonePe', 'BHIM UPI', 'Amazon Pay UPI', 'Navi UPI', 'Supermoney UPI',
+];
+
+const MONTH_NAMES_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function BillRemindersScreen({ navigation }) {
   const [bills, setBills] = useState([]);
@@ -42,12 +57,20 @@ export default function BillRemindersScreen({ navigation }) {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Other');
   const [dueDate, setDueDate] = useState('1'); // day of month
+  const [dueMonth, setDueMonth] = useState(String(new Date().getMonth() + 1)); // 1-12, used for quarterly/yearly anchor
   const [isRecurring, setIsRecurring] = useState(true);
   const [frequency, setFrequency] = useState('monthly');
   const [autoPay, setAutoPay] = useState(false);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+
+  // Payment method
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentDetail, setPaymentDetail] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [customDetail, setCustomDetail] = useState('');
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -84,21 +107,28 @@ export default function BillRemindersScreen({ navigation }) {
       setAmount(String(bill.amount));
       setCategory(bill.category);
       setDueDate(String(bill.dueDate));
+      setDueMonth(String(bill.dueMonth || new Date().getMonth() + 1));
       setIsRecurring(bill.isRecurring !== false);
       setFrequency(bill.frequency || 'monthly');
       setAutoPay(bill.autoPay || false);
       setNotes(bill.notes || '');
+      setPaymentMethod(bill.paymentMethod || null);
+      setPaymentDetail(bill.paymentDetail || '');
     } else {
       setEditingBill(null);
       setTitle('');
       setAmount('');
       setCategory('Other');
       setDueDate('1');
+      setDueMonth(String(new Date().getMonth() + 1));
       setIsRecurring(true);
       setFrequency('monthly');
       setAutoPay(false);
       setNotes('');
+      setPaymentMethod(null);
+      setPaymentDetail('');
     }
+    setCustomDetail('');
     setShowModal(true);
   };
 
@@ -115,9 +145,31 @@ export default function BillRemindersScreen({ navigation }) {
     }
   };
 
+  // Computed preview of when this bill will actually be due, based on
+  // frequency + the chosen day (and month, for quarterly/yearly).
+  const getOccurrencePreview = () => {
+    const day = parseInt(dueDate) || 1;
+    const startMonth = parseInt(dueMonth) || 1;
+
+    if (frequency === 'monthly') {
+      return `Every month on day ${day}`;
+    }
+    if (frequency === 'yearly') {
+      return `Once a year — ${MONTH_NAMES_SHORT[startMonth - 1]} ${day}`;
+    }
+    // quarterly — 4 occurrences a year, every 3 months from the chosen month
+    const dates = [];
+    for (let i = 0; i < 4; i++) {
+      const m = ((startMonth - 1 + i * 3) % 12) + 1;
+      dates.push(`${MONTH_NAMES_SHORT[m - 1]} ${day}`);
+    }
+    return `4 times a year — ${dates.join(', ')}`;
+  };
+
   const handleSave = async () => {
     if (!title.trim()) return Alert.alert('Error', 'Title is required');
     if (!amount || isNaN(amount)) return Alert.alert('Error', 'Valid amount is required');
+    if (!paymentMethod) return Alert.alert('Error', 'Please select a payment method');
 
     setSaving(true);
     try {
@@ -126,10 +178,15 @@ export default function BillRemindersScreen({ navigation }) {
         amount: parseFloat(amount),
         category,
         dueDate: parseInt(dueDate),
+        dueMonth: frequency === 'monthly' ? undefined : parseInt(dueMonth),
         isRecurring,
         frequency,
         autoPay,
-        notes: notes.trim()
+        paymentMethod,
+        paymentDetail: paymentDetail || undefined,
+        notes: paymentDetail
+          ? `${notes.trim()}${notes.trim() ? ' · ' : ''}Paid via ${paymentDetail}`.trim()
+          : notes.trim()
       };
 
       if (editingBill) {
@@ -137,7 +194,7 @@ export default function BillRemindersScreen({ navigation }) {
       } else {
         await billService.createBill(payload);
         await sendLocalNotification(
-          '📅 Bill Reminder Created',
+          'Bill Reminder Created',
           `Reminder for "${payload.title}" of ₹${payload.amount} has been added.`
         );
         await scheduleBillReminder(payload.title, payload.amount, 3);
@@ -180,6 +237,8 @@ export default function BillRemindersScreen({ navigation }) {
     return true;
   });
 
+  const selectedPayment = PAYMENT_METHODS.find(p => p.key === paymentMethod);
+
   return (
     <SafeAreaView style={s.container}>
       {/* Header */}
@@ -215,16 +274,23 @@ export default function BillRemindersScreen({ navigation }) {
         {/* Filter Tabs */}
         <View style={s.filterRow}>
           {[
-            { val: 'All', label: 'All' },
-            { val: 'unpaid', label: '⏳ Unpaid' },
-            { val: 'paid', label: '✅ Paid' },
-            { val: 'urgent', label: '⚠️ Urgent' }
+            { val: 'All', label: 'All', icon: null },
+            { val: 'unpaid', label: 'Unpaid', icon: 'time-outline' },
+            { val: 'paid', label: 'Paid', icon: 'checkmark-circle-outline' },
+            { val: 'urgent', label: 'Urgent', icon: 'warning-outline' }
           ].map((f) => (
             <TouchableOpacity
               key={f.val}
-              style={[s.filterBtn, filterStatus === f.val && s.filterBtnActive]}
+              style={[s.filterBtn, filterStatus === f.val && s.filterBtnActive, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }]}
               onPress={() => setFilterStatus(f.val)}
             >
+              {f.icon && (
+                <Ionicons
+                  name={f.icon}
+                  size={12}
+                  color={filterStatus === f.val ? COLORS.white : COLORS.onSurfaceVariant}
+                />
+              )}
               <Text style={[s.filterBtnText, filterStatus === f.val && s.filterBtnActiveText]}>
                 {f.label}
               </Text>
@@ -237,7 +303,7 @@ export default function BillRemindersScreen({ navigation }) {
           <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
         ) : filteredBills.length === 0 ? (
           <View style={s.emptyContainer}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📄</Text>
+            <Ionicons name="document-text-outline" size={40} color={COLORS.outline} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>No bills found</Text>
             <Text style={s.emptySub}>Add your recurring bills to get timely reminders.</Text>
             <TouchableOpacity style={s.emptyAddBtn} onPress={() => handleOpenModal()}>
@@ -258,7 +324,7 @@ export default function BillRemindersScreen({ navigation }) {
               <View key={b._id} style={[s.billCard, isUrgent && s.billCardUrgent, isUpcoming && s.billCardUpcoming]}>
                 <View style={s.billCardMain}>
                   <View style={[s.billIcon, { backgroundColor: iconBg }]}>
-                    <Text style={{ fontSize: 20 }}>{CATEGORY_ICONS[b.category] || '📄'}</Text>
+                    <Ionicons name={CATEGORY_ICONS[b.category] || 'document-text-outline'} size={20} color={COLORS.primary} />
                   </View>
 
                   <View style={s.billDetails}>
@@ -268,11 +334,19 @@ export default function BillRemindersScreen({ navigation }) {
                     </View>
                     <Text style={s.billDateText}>
                       Due day {b.dueDate} • {b.frequency}
+                      {b.paymentMethod ? ` • ${b.paymentMethod}` : ''}
                     </Text>
                     {isDueThisMonth && !isPaid && (
-                      <Text style={[s.alertText, isUrgent && { color: COLORS.red }]}>
-                        {isUrgent ? '🚨 Due soon!' : `⚠️ ${daysUntilDue} days left`}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                        <Ionicons
+                          name={isUrgent ? 'alert-circle' : 'warning-outline'}
+                          size={11}
+                          color={isUrgent ? COLORS.red : '#d97706'}
+                        />
+                        <Text style={[s.alertText, isUrgent && { color: COLORS.red }]}>
+                          {isUrgent ? 'Due soon!' : `${daysUntilDue} days left`}
+                        </Text>
+                      </View>
                     )}
                   </View>
 
@@ -333,7 +407,11 @@ export default function BillRemindersScreen({ navigation }) {
                       style={[s.categoryGridItem, category === c && s.categoryGridActiveItem]}
                       onPress={() => setCategory(c)}
                     >
-                      <Text style={{ fontSize: 18 }}>{CATEGORY_ICONS[c]}</Text>
+                      <Ionicons
+                        name={CATEGORY_ICONS[c]}
+                        size={18}
+                        color={category === c ? COLORS.white : COLORS.primary}
+                      />
                       <Text style={[s.categoryGridItemText, category === c && { color: COLORS.white }]}>
                         {c}
                       </Text>
@@ -386,8 +464,6 @@ export default function BillRemindersScreen({ navigation }) {
                     autoCorrect={false}
                     autoCapitalize="none"
                     blurOnSubmit={false}
-                    caretHidden={false}
-                    selection={undefined}
                     onFocus={() => setFocusedField('amount')}
                     onBlur={() => setFocusedField(null)}
                     cursorColor={COLORS.teal}
@@ -413,8 +489,6 @@ export default function BillRemindersScreen({ navigation }) {
                     autoCorrect={false}
                     autoCapitalize="none"
                     blurOnSubmit={false}
-                    caretHidden={false}
-                    selection={undefined}
                     onFocus={() => setFocusedField('dueDate')}
                     onBlur={() => setFocusedField(null)}
                     cursorColor={COLORS.teal}
@@ -441,6 +515,52 @@ export default function BillRemindersScreen({ navigation }) {
                 </View>
               </View>
 
+              {/* Month Select — only needed for quarterly/yearly */}
+              {frequency !== 'monthly' && (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={s.inputLabel}>
+                    {frequency === 'yearly' ? 'Month it falls due' : 'Starting month (quarter anchor)'}
+                  </Text>
+                  <View style={s.monthGrid}>
+                    {MONTH_NAMES_SHORT.map((m, idx) => {
+                      const val = String(idx + 1);
+                      const active = dueMonth === val;
+                      return (
+                        <TouchableOpacity
+                          key={m}
+                          style={[s.monthChip, active && s.monthChipActive]}
+                          onPress={() => setDueMonth(val)}
+                        >
+                          <Text style={[s.monthChipText, active && { color: COLORS.white }]}>{m}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Computed due-date preview */}
+              <View style={s.previewBox}>
+                <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
+                <Text style={s.previewText}>{getOccurrencePreview()}</Text>
+              </View>
+
+              {/* Payment Method Selector */}
+              <View style={{ marginTop: 16, marginBottom: 16 }}>
+                <Text style={s.inputLabel}>Payment Method</Text>
+                <TouchableOpacity style={s.paymentSelector} onPress={() => setShowPaymentModal(true)}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Ionicons name={selectedPayment?.icon || 'wallet-outline'} size={18} color={COLORS.primary} />
+                    <Text style={s.selectorLabel} numberOfLines={1}>
+                      {selectedPayment
+                        ? `${selectedPayment.label}${paymentDetail ? ' · ' + paymentDetail : ''}`
+                        : 'Select Payment Method'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={18} color={COLORS.outline} />
+                </TouchableOpacity>
+              </View>
+
               {/* Auto Pay Checkbox */}
               <View style={s.switchRow}>
                 <View>
@@ -455,7 +575,7 @@ export default function BillRemindersScreen({ navigation }) {
               </View>
 
               {/* Notes */}
-              <View style={{ marginBottom: 24 }}>
+              <View style={{ marginBottom: 24, marginTop: 16 }}>
                 <Text style={s.inputLabel}>Notes</Text>
                 <TextInput
                   style={[
@@ -487,6 +607,106 @@ export default function BillRemindersScreen({ navigation }) {
                 <Text style={s.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
             </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Payment Method Select Modal */}
+      <Modal visible={showPaymentModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowPaymentModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Payment Method</Text>
+            <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={PAYMENT_METHODS}
+            keyExtractor={(item) => item.key}
+            style={{ flex: 1 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={s.modalPickerItem}
+                onPress={() => {
+                  setPaymentMethod(item.key);
+                  setPaymentDetail('');
+                  setCustomDetail('');
+                  if (item.key === 'UPI') {
+                    setShowPaymentModal(false);
+                    setShowUpiModal(true);
+                  } else {
+                    setShowPaymentModal(false);
+                  }
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Ionicons name={item.icon} size={18} color={COLORS.primary} />
+                  <Text style={s.modalPickerItemText}>{item.label}</Text>
+                </View>
+                {paymentMethod === item.key && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+              </TouchableOpacity>
+            )}
+            ListFooterComponent={
+              <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowPaymentModal(false)}>
+                <Text style={s.modalCloseText}>Cancel</Text>
+              </TouchableOpacity>
+            }
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* UPI Selection Modal */}
+      <Modal visible={showUpiModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowUpiModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, paddingTop: Platform.OS === 'android' ? 40 : 0 }}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Select UPI App</Text>
+            <TouchableOpacity onPress={() => setShowUpiModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+                {UPI_QUICK_PICKS.map((app) => (
+                  <TouchableOpacity
+                    key={app}
+                    onPress={() => {
+                      setPaymentDetail(app);
+                      setShowUpiModal(false);
+                    }}
+                    style={[
+                      s.freqBtn,
+                      { flex: 0, paddingHorizontal: 16 },
+                      paymentDetail === app && s.freqBtnActive,
+                    ]}
+                  >
+                    <Text style={[s.freqText, { textTransform: 'none' }, paymentDetail === app && { color: COLORS.white }]}>
+                      {app}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={s.inputLabel}>OTHER UPI APP / ACCOUNT</Text>
+              <TextInput
+                style={[s.textInput, { marginTop: 6 }]}
+                placeholder="e.g. Paytm UPI, IDFC UPI..."
+                placeholderTextColor={COLORS.outline}
+                value={customDetail}
+                onChangeText={setCustomDetail}
+              />
+              <TouchableOpacity
+                style={[s.submitBtn, { marginTop: 16 }]}
+                onPress={() => {
+                  if (customDetail.trim()) setPaymentDetail(customDetail.trim());
+                  setShowUpiModal(false);
+                }}
+              >
+                <Text style={s.submitBtnText}>Confirm</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
@@ -867,5 +1087,87 @@ const s = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 4,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  monthChip: {
+    width: '15%',
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.white,
+  },
+  monthChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  monthChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.onSurfaceVariant,
+  },
+  previewBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  previewText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.onSurfaceVariant,
+    flex: 1,
+  },
+  paymentSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+  },
+  selectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.onSurface,
+  },
+  modalPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(194, 198, 214, 0.15)',
+  },
+  modalPickerItemText: {
+    fontSize: 14,
+    color: COLORS.onSurface,
+    fontWeight: '500',
+  },
+  modalCloseBtn: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
 });

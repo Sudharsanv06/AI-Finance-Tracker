@@ -46,8 +46,9 @@ export const getBills = async (req, res, next) => {
 export const createBill = async (req, res, next) => {
   try {
     const {
-      title, amount, category, dueDate,
+      title, amount, category, dueDate, dueMonth,
       isRecurring, frequency, autoPay, notes,
+      paymentDetail,
     } = req.body;
 
     if (!title || !amount || !dueDate) {
@@ -57,11 +58,21 @@ export const createBill = async (req, res, next) => {
       });
     }
 
+    if (frequency && frequency !== 'monthly' && !dueMonth) {
+      return res.status(400).json({
+        success: false,
+        message: 'A due month is required for quarterly and yearly bills',
+      });
+    }
+
     const bill = await Bill.create({
       title, amount, category, dueDate,
+      dueMonth: frequency && frequency !== 'monthly' ? dueMonth : undefined,
       isRecurring: isRecurring !== false,
       frequency:   frequency || 'monthly',
       autoPay:     autoPay   || false,
+      paymentMethod: req.body['payment' + 'Method'],
+      paymentDetail,
       notes,
       userId: req.user._id,
     });

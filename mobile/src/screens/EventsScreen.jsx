@@ -335,9 +335,12 @@ function EventCard({ event, onEdit, onDelete }) {
       <View style={s.progressSection}>
         <View style={s.progressRow}>
           <Text style={s.progressLabel}>Budget Used</Text>
-          <Text style={[s.progressPct, { color: isOver ? COLORS.red : COLORS.primary, fontSize: 13 }]}>
-            {pct}% {isOver ? '⚠️' : ''}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={[s.progressPct, { color: isOver ? COLORS.red : COLORS.primary, fontSize: 13 }]}>
+              {pct}%
+            </Text>
+            {isOver && <Ionicons name="warning" size={14} color={COLORS.red} />}
+          </View>
         </View>
         <View style={s.progressBar}>
           <View style={[s.progressFill, {
@@ -371,11 +374,13 @@ function EventCard({ event, onEdit, onDelete }) {
 
       {/* Actions */}
       <View style={s.actionRow}>
-        <TouchableOpacity style={[s.actionBtn, { backgroundColor: COLORS.surfaceContainerLow }]} onPress={onEdit}>
-          <Text style={[s.actionBtnText, { color: COLORS.primary }]}>✏️ Edit</Text>
+        <TouchableOpacity style={[s.actionBtn, { backgroundColor: COLORS.surfaceContainerLow, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }]} onPress={onEdit}>
+          <Ionicons name="create-outline" size={14} color={COLORS.primary} />
+          <Text style={[s.actionBtnText, { color: COLORS.primary }]}>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.actionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.05)' }]} onPress={onDelete}>
-          <Text style={[s.actionBtnText, { color: COLORS.red }]}>🗑️ Delete</Text>
+        <TouchableOpacity style={[s.actionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.05)', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }]} onPress={onDelete}>
+          <Ionicons name="trash-outline" size={14} color={COLORS.red} />
+          <Text style={[s.actionBtnText, { color: COLORS.red }]}>Delete</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -524,7 +529,7 @@ export default function EventsScreen() {
         }
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>📅</Text>
+            <Ionicons name="calendar-outline" size={48} color={COLORS.outline} style={{ marginBottom: 10 }} />
             <Text style={s.emptyText}>
               {filterStatus === 'All'
                 ? 'No events yet'

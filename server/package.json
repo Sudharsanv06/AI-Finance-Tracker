@@ -1,7 +1,7 @@
 {
-  "name": "eventfi-server",
+  "name": "paisa-pulse-server",
   "version": "1.0.0",
-  "description": "EventFi Smart Event Finance Manager - Backend",
+  "description": "Paisa Pulse Smart Finance Manager - Backend",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
