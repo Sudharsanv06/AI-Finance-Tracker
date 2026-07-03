@@ -16,7 +16,7 @@
         "backgroundColor": "#0f9b8e"
       },
       "package": "com.sudharsan7.paisapulse",
-      "softwareKeyboardLayoutMode": "pan",
+      "softwareKeyboardLayoutMode": "resize",
       "versionCode": 2
     },
     "extra": {

@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, FlatList, Modal, ActivityIndicator,
-  Platform, Animated, PanResponder, Dimensions, Keyboard,
+  Platform, Animated, PanResponder, Dimensions,
 } from 'react-native';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -43,28 +43,7 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const listRef               = useRef(null);
 
-  // ── Manual keyboard height tracking ─────────────────────────────────
-  // KeyboardAvoidingView doesn't work reliably inside Modal on Android.
-  // Instead, we listen to keyboard events directly and add bottom padding.
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  // ── Draggable FAB position ───────────────────────────────────────────
+  // ── Draggable FAB ───────────────────────────────────────────────────
   const pan = useRef(
     new Animated.ValueXY({
       x: SCREEN_W - FAB_SIZE - 20,
@@ -97,9 +76,7 @@ export default function ChatBot() {
         }).start();
 
         const dist = Math.abs(gesture.dx) + Math.abs(gesture.dy);
-        if (dist < 6) {
-          setIsOpen(true);
-        }
+        if (dist < 6) setIsOpen(true);
       },
     })
   ).current;
@@ -114,7 +91,6 @@ export default function ChatBot() {
     }, [user?.name])
   );
 
-  // Auto-scroll with a slight delay to let layout settle (prevents glitch)
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
@@ -183,14 +159,18 @@ export default function ChatBot() {
         </View>
       </Animated.View>
 
-      {/* Chat Modal */}
+      {/* Chat Modal — no KeyboardAvoidingView needed.
+          Android's windowSoftInputMode="resize" (set in app.json)
+          automatically shrinks the Modal window when the keyboard opens,
+          which pushes the input row up above the keyboard naturally.
+          This is more reliable than any manual Keyboard listener approach
+          inside a Modal on Android. */}
       <Modal
         visible={isOpen}
         animationType="slide"
-        presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
         onRequestClose={() => setIsOpen(false)}
       >
-        <View style={[s.container, { paddingBottom: keyboardHeight }]}>
+        <View style={s.container}>
           {/* Header */}
           <View style={s.header}>
             <View style={s.headerLeft}>
@@ -313,7 +293,8 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', backgroundColor: '#0058be',
-    paddingHorizontal: 16, paddingVertical: 14, paddingTop: Platform.OS === 'ios' ? 44 : 48,
+    paddingHorizontal: 16, paddingVertical: 14,
+    paddingTop: Platform.OS === 'ios' ? 44 : 48,
   },
   headerLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerAvatar: {
@@ -343,7 +324,8 @@ const s = StyleSheet.create({
   msgRowUser: { flexDirection: 'row-reverse' },
   botAvatar: {
     width: 30, height: 30, borderRadius: 10,
-    backgroundColor: COLORS.surfaceContainerLow, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+    alignItems: 'center', justifyContent: 'center',
   },
   bubble: {
     maxWidth: '78%', paddingHorizontal: 14, paddingVertical: 10,
