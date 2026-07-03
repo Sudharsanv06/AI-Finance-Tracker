@@ -178,11 +178,13 @@ export default function DashboardScreen({ navigation }) {
         // Preserve local-only fields (profilePhoto) that the server
         // doesn't store — merging instead of replacing prevents the
         // photo from vanishing every time the Dashboard refreshes.
-        updateUser({
-          ...user,              // current local state (has profilePhoto)
-          ...serverUser,        // server fields overwrite (name, email, role, etc.)
-          profilePhoto: user?.profilePhoto || serverUser?.profilePhoto || null,
-        });
+        // We use a functional state update callback here to ensure we do not
+        // capture a stale closure of `user`.
+        updateUser((currentUser) => ({
+          ...currentUser,
+          ...serverUser,
+          profilePhoto: currentUser?.profilePhoto || serverUser?.profilePhoto || null,
+        }));
       }
     } catch (err) {
       console.log('Dashboard fetch error:', err.message);

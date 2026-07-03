@@ -314,9 +314,9 @@ export default function BillRemindersScreen({ navigation }) {
           filteredBills.map((b) => {
             const isDueThisMonth = b.isDueThisMonth;
             const daysUntilDue = b.daysUntilDue;
-            const isUrgent = isDueThisMonth && daysUntilDue <= 3 && !b.isPaid;
-            const isUpcoming = isDueThisMonth && daysUntilDue <= 7 && !b.isPaid;
-            const isPaid = !isDueThisMonth || b.isPaid;
+            const isUrgent = daysUntilDue !== null && daysUntilDue <= 3 && !b.isPaid;
+            const isUpcoming = daysUntilDue !== null && daysUntilDue <= 7 && !b.isPaid;
+            const isPaid = b.isPaid;
 
             const iconBg = isPaid ? 'rgba(16, 185, 129, 0.08)' : isUrgent ? 'rgba(239, 68, 68, 0.08)' : isUpcoming ? 'rgba(217, 119, 6, 0.08)' : COLORS.surfaceContainerLow;
 
@@ -336,15 +336,21 @@ export default function BillRemindersScreen({ navigation }) {
                       Due day {b.dueDate} • {b.frequency}
                       {b.paymentMethod ? ` • ${b.paymentMethod}` : ''}
                     </Text>
-                    {isDueThisMonth && !isPaid && (
+                    {!isPaid && daysUntilDue !== null && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
                         <Ionicons
-                          name={isUrgent ? 'alert-circle' : 'warning-outline'}
+                          name={daysUntilDue < 0 ? 'alert-circle' : isUrgent ? 'alert-circle' : 'warning-outline'}
                           size={11}
-                          color={isUrgent ? COLORS.red : '#d97706'}
+                          color={daysUntilDue < 0 || isUrgent ? COLORS.red : '#d97706'}
                         />
-                        <Text style={[s.alertText, isUrgent && { color: COLORS.red }]}>
-                          {isUrgent ? 'Due soon!' : `${daysUntilDue} days left`}
+                        <Text style={[s.alertText, (daysUntilDue < 0 || isUrgent) && { color: COLORS.red }]}>
+                          {daysUntilDue < 0
+                            ? 'Overdue!'
+                            : daysUntilDue === 0
+                            ? 'Due today!'
+                            : isUrgent
+                            ? 'Due soon!'
+                            : `${daysUntilDue} days left`}
                         </Text>
                       </View>
                     )}

@@ -61,9 +61,23 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const updateUser = async (updatedUser) => {
-    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
+  const updateUser = async (updatedUserOrFunc) => {
+    try {
+      if (typeof updatedUserOrFunc === 'function') {
+        setUser((prevUser) => {
+          const nextUser = updatedUserOrFunc(prevUser);
+          AsyncStorage.setItem('user', JSON.stringify(nextUser)).catch((err) => {
+            console.log('AsyncStorage user set error:', err);
+          });
+          return nextUser;
+        });
+      } else {
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUserOrFunc));
+        setUser(updatedUserOrFunc);
+      }
+    } catch (err) {
+      console.log('updateUser error:', err);
+    }
   };
 
   return (

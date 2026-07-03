@@ -42,10 +42,7 @@ const billSchema = new mongoose.Schema(
       enum:    ['monthly', 'quarterly', 'yearly'],
       default: 'monthly',
     },
-    isPaid: {
-      type:    Boolean,
-      default: false,
-    },
+    // isPaid is now a virtual property computed dynamically based on lastPaidMonth and lastPaidYear
     paidDate: {
       type:    Date,
       default: null,
@@ -107,42 +104,69 @@ billSchema.methods.getAnchorMonths = function () {
   return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 };
 
-// Virtual: is this bill due in the current calendar month, and not already
-// paid for this specific occurrence.
-billSchema.virtual('isDueThisMonth').get(function () {
-  const now          = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear  = now.getFullYear();
-
-  const anchorMonths = this.getAnchorMonths();
-  if (!anchorMonths.includes(currentMonth)) return false;
-
-  const alreadyPaidThisOccurrence =
-    this.lastPaidMonth === currentMonth && this.lastPaidYear === currentYear;
-
-  return !alreadyPaidThisOccurrence;
-});
-
-// Virtual: days until the NEXT actual occurrence, correctly accounting for
-// quarterly/yearly anchor months instead of assuming every month.
-billSchema.virtual('daysUntilDue').get(function () {
+// Virtual: the next actual due date for this bill, accounting for 
+// payments made on previous occurrences.
+billSchema.virtual('nextDueDate').get(function () {
   const now = new Date();
-  const day = Math.min(Math.max(this.dueDate || 1, 1), 28);
   const anchorMonths = this.getAnchorMonths();
+  const targetDay = this.dueDate || 1;
 
   const candidates = [];
+  // Look from current year and next year
   const years = [now.getFullYear(), now.getFullYear() + 1];
   years.forEach((year) => {
     anchorMonths.forEach((month) => {
-      candidates.push(new Date(year, month - 1, day));
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const actualDay = Math.min(targetDay, daysInMonth);
+      // Set to 23:59:59 so today remains a valid candidate until end of day
+      candidates.push(new Date(year, month - 1, actualDay, 23, 59, 59));
     });
   });
 
-  const future = candidates.filter((d) => d >= now).sort((a, b) => a - b);
-  const nextDue = future[0];
-  if (!nextDue) return null;
+  // Sort ascending
+  candidates.sort((a, b) => a - b);
 
-  return Math.ceil((nextDue - now) / (1000 * 60 * 60 * 24));
+  // Find the first candidate that hasn't been paid yet.
+  // A candidate is considered paid if lastPaidMonth and lastPaidYear match it.
+  const unpaidCandidates = candidates.filter((d) => {
+    const m = d.getMonth() + 1;
+    const y = d.getFullYear();
+    return !(this.lastPaidMonth === m && this.lastPaidYear === y);
+  });
+
+  // We also want to make sure we don't return past occurrences that are already
+  // considered obsolete (i.e. before the current calendar month), unless unpaid.
+  // Actually, let's keep only occurrences starting from the current calendar month
+  // to avoid showing long-past overdue items if they weren't paid.
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const relevantCandidates = unpaidCandidates.filter((d) => d >= currentMonthStart);
+
+  return relevantCandidates[0] || null;
+});
+
+// Virtual: is the bill paid for the current calendar month
+billSchema.virtual('isPaid').get(function () {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear  = now.getFullYear();
+  return this.lastPaidMonth === currentMonth && this.lastPaidYear === currentYear;
+});
+
+// Virtual: is this bill due in the current calendar month
+billSchema.virtual('isDueThisMonth').get(function () {
+  const nextDue = this.nextDueDate;
+  if (!nextDue) return false;
+  const now = new Date();
+  return nextDue.getMonth() === now.getMonth() && nextDue.getFullYear() === now.getFullYear();
+});
+
+// Virtual: days until the next unpaid occurrence (can be negative if overdue!)
+billSchema.virtual('daysUntilDue').get(function () {
+  const nextDue = this.nextDueDate;
+  if (!nextDue) return null;
+  const now = new Date();
+  const diffTime = nextDue.getTime() - now.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 });
 
 billSchema.set('toJSON', { virtuals: true });

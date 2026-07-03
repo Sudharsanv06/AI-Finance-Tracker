@@ -2,7 +2,7 @@
   "expo": {
     "name": "Paisa Pulse",
     "slug": "paisa-pulse",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
@@ -16,13 +16,14 @@
         "backgroundColor": "#0f9b8e"
       },
       "package": "com.sudharsan7.paisapulse",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "versionCode": 2
     },
-    "owner": "susan47",
     "extra": {
       "eas": {
-        "projectId": "dea70ab6-a0cf-4fc2-8f63-236c7cb6f0ff"
+        "projectId": "bb0ca3c3-ee79-44e2-965c-f7a7c7b1e853"
       }
-    }
+    },
+    "owner": "prabhukd"
   }
 }

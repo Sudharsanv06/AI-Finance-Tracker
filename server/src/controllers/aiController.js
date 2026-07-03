@@ -29,17 +29,12 @@ export const chat = async (req, res, next) => {
       });
     }
 
-    // Fetch user's financial context
     let contextText = '';
     try {
-      // Fetch ALL user data in parallel
-      let eventQuery = { createdBy: req.user._id };
-      
+      // Always scope to the current user — no role-based leaking
       const userId = req.user._id;
       const now = new Date();
-      const monthStart = new Date(
-        now.getFullYear(), now.getMonth(), 1
-      );
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
       const [
         events,
@@ -49,142 +44,173 @@ export const chat = async (req, res, next) => {
         goals,
         bills,
         investments,
+        expenseAgg,
       ] = await Promise.all([
-        Event.find(eventQuery).limit(10),
-        Expense.find(
-          req.user.role === 'Organizer'
-            ? { submittedBy: userId }
-            : {}
-        ).limit(20),
+        Event.find({ createdBy: userId }).limit(10),
+        Expense.find({ submittedBy: userId, approvalStatus: { $ne: 'Rejected' } })
+          .sort({ date: -1 })
+          .limit(15),
         Income.find({ userId }).sort({ date: -1 }).limit(20),
         Loan.find({ userId }),
         Goal.find({ userId }),
         Bill.find({ userId }),
         Investment.find({ userId }),
+        Expense.aggregate([
+          { $match: { submittedBy: userId, approvalStatus: { $ne: 'Rejected' } } },
+          {
+            $facet: {
+              byCategory: [
+                { $group: { _id: '$category', total: { $sum: '$amount' } } },
+                { $sort: { total: -1 } },
+                { $limit: 8 },
+              ],
+              thisMonth: [
+                { $match: { date: { $gte: monthStart } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+              ],
+              allTime: [
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+              ],
+            },
+          },
+        ]),
       ]);
 
-      // Calculate all metrics
-      const totalBudget = events.reduce(
-        (s, e) => s + (e.totalBudget || 0), 0
-      );
-      const totalSpent = events.reduce(
-        (s, e) => s + (e.spentAmount || 0), 0
-      );
-      const pending = expenses.filter(
-        e => e.approvalStatus === 'Pending'
-      ).length;
-      const overBudget = events.filter(
-        e => e.spentAmount > e.totalBudget
-      ).length;
+      // ── Calculations ──
+      const totalBudget = events.reduce((s, e) => s + (e.totalBudget || 0), 0);
+      const totalSpent = events.reduce((s, e) => s + (e.spentAmount || 0), 0);
+      const pending = expenses.filter(e => e.approvalStatus === 'Pending').length;
+      const overBudget = events.filter(e => e.spentAmount > e.totalBudget).length;
 
-      const totalIncome = incomes.reduce(
-        (s, i) => s + (i.amount || 0), 0
-      );
+      const totalIncome = incomes.reduce((s, i) => s + (i.amount || 0), 0);
       const monthlyIncome = incomes
         .filter(i => new Date(i.date) >= monthStart)
         .reduce((s, i) => s + (i.amount || 0), 0);
 
       const takenLoans = loans.filter(l => l.type === 'taken');
-      const totalLoanDebt = takenLoans.reduce(
-        (s, l) => s + (l.remainingAmount || 0), 0
-      );
+      const totalLoanDebt = takenLoans.reduce((s, l) => s + (l.remainingAmount || 0), 0);
       const monthlyEMI = takenLoans
         .filter(l => l.status === 'active')
         .reduce((s, l) => s + (l.emiAmount || 0), 0);
 
-      const totalInvested = investments.reduce(
-        (s, i) => s + (i.investedAmount || 0), 0
-      );
+      const totalInvested = investments.reduce((s, i) => s + (i.investedAmount || 0), 0);
       const portfolioValue = investments.reduce(
         (s, i) => s + (i.currentValue || i.investedAmount || 0), 0
       );
       const investmentReturns = portfolioValue - totalInvested;
 
       const activeGoals = goals.filter(g => g.status === 'active');
-      const completedGoals = goals.filter(
-        g => g.status === 'completed'
-      ).length;
-      const totalGoalTarget = activeGoals.reduce(
-        (s, g) => s + (g.targetAmount || 0), 0
-      );
-      const totalGoalSaved = activeGoals.reduce(
-        (s, g) => s + (g.currentAmount || 0), 0
-      );
+      const completedGoals = goals.filter(g => g.status === 'completed').length;
+      const totalGoalTarget = activeGoals.reduce((s, g) => s + (g.targetAmount || 0), 0);
+      const totalGoalSaved = activeGoals.reduce((s, g) => s + (g.currentAmount || 0), 0);
 
-      const unpaidBills = bills.filter(
-        b => b.isDueThisMonth && !b.isPaid
-      );
       const monthlyBills = bills
         .filter(b => b.frequency === 'monthly')
         .reduce((s, b) => s + (b.amount || 0), 0);
 
+      const expCategoryTotals = expenseAgg[0]?.byCategory || [];
+      const monthlyExpenseTotal = expenseAgg[0]?.thisMonth?.[0]?.total || 0;
+      const allTimeExpenseTotal = expenseAgg[0]?.allTime?.[0]?.total || 0;
+
       const netWorth = portfolioValue - totalLoanDebt;
       const savingsRate = monthlyIncome > 0
         ? Math.round(
-            ((monthlyIncome - monthlyEMI - monthlyBills) /
+            ((monthlyIncome - monthlyEMI - monthlyBills - monthlyExpenseTotal) /
               monthlyIncome) * 100
           )
         : 0;
+
+      // ── Build full bill list with details ──
+      const billDetails = bills.map(b => {
+        const dueInfo = [];
+        dueInfo.push(`"${b.title}"`);
+        dueInfo.push(`category: ${b.category}`);
+        dueInfo.push(`amount: ₹${b.amount}`);
+        dueInfo.push(`frequency: ${b.frequency}`);
+        dueInfo.push(`due on day: ${b.dueDate}`);
+        if (b.dueMonth) dueInfo.push(`due month: ${b.dueMonth}`);
+        if (b.paymentMethod) dueInfo.push(`payment: ${b.paymentMethod}`);
+        dueInfo.push(`status: ${b.isPaid ? 'Paid' : 'Unpaid'}`);
+        if (b.isDueThisMonth !== undefined) {
+          dueInfo.push(`due this month: ${b.isDueThisMonth ? 'Yes' : 'No'}`);
+        }
+        if (b.daysUntilDue !== undefined && b.daysUntilDue !== null) {
+          dueInfo.push(`days until next due: ${b.daysUntilDue}`);
+        }
+        if (b.autoPay) dueInfo.push('auto-pay: enabled');
+        if (b.notes) dueInfo.push(`notes: ${b.notes}`);
+        return dueInfo.join(', ');
+      }).join('\n  - ');
+
+      // ── Build pending expense details ──
+      const pendingExpenses = expenses
+        .filter(e => e.approvalStatus === 'Pending')
+        .map(e => `"${e.description}" - ₹${e.amount} (${e.category}, ${new Date(e.date).toLocaleDateString('en-IN')})`)
+        .join('\n  - ');
 
       contextText = `
 === ${req.user.name}'s Complete Financial Snapshot ===
 Role: ${req.user.role}
 Data as of: ${now.toLocaleDateString('en-IN')}
 
-💰 INCOME
+INCOME
 - Total income recorded: ₹${totalIncome.toLocaleString('en-IN')}
 - This month income: ₹${monthlyIncome.toLocaleString('en-IN')}
 - Income sources: ${[...new Set(incomes.map(i => i.source))].join(', ') || 'None'}
 
-📅 EVENTS & EXPENSES  
+PERSONAL EXPENSES
+- This month spending: ₹${monthlyExpenseTotal.toLocaleString('en-IN')}
+- All-time spending: ₹${allTimeExpenseTotal.toLocaleString('en-IN')}
+- Top categories: ${expCategoryTotals.map(c =>
+    `${c._id || 'Uncategorized'} (₹${(c.total||0).toLocaleString('en-IN')})`
+  ).join(', ') || 'None'}
+- Recent transactions: ${expenses.slice(0,8).map(e =>
+    `"${e.description}" ₹${e.amount} (${e.category}, ${e.paymentMethod || 'N/A'}, ${new Date(e.date).toLocaleDateString('en-IN')})`
+  ).join('; ') || 'None'}
+- Pending approvals: ${pending}
+${pendingExpenses ? `- Pending items:\n  - ${pendingExpenses}` : ''}
+
+EVENTS & EVENT BUDGETS
 - Total events: ${events.length} (${overBudget} over budget)
 - Total budget: ₹${totalBudget.toLocaleString('en-IN')}
 - Total spent: ₹${totalSpent.toLocaleString('en-IN')}
 - Budget used: ${totalBudget ? Math.round((totalSpent/totalBudget)*100) : 0}%
-- Pending approvals: ${pending}
-- Recent events: ${events.slice(0,3).map(e =>
-    `${e.name}(${Math.round((e.spentAmount/e.totalBudget)*100)||0}% used)`
+- Events: ${events.slice(0,5).map(e =>
+    `"${e.name}" (₹${e.spentAmount||0}/₹${e.totalBudget||0}, ${Math.round((e.spentAmount/e.totalBudget)*100)||0}% used)`
   ).join(', ') || 'None'}
 
-🤝 LOANS
-- Total debt outstanding: ₹${totalLoanDebt.toLocaleString('en-IN')}
-- Monthly EMI burden: ₹${monthlyEMI.toLocaleString('en-IN')}
+LOANS
+- Total debt: ₹${totalLoanDebt.toLocaleString('en-IN')}
+- Monthly EMI: ₹${monthlyEMI.toLocaleString('en-IN')}
 - Active loans: ${takenLoans.filter(l=>l.status==='active').length}
-- Loans: ${takenLoans.slice(0,3).map(l =>
-    `${l.title}(₹${(l.remainingAmount||0).toLocaleString('en-IN')} left)`
+- Details: ${takenLoans.slice(0,5).map(l =>
+    `"${l.title}" ₹${(l.remainingAmount||0).toLocaleString('en-IN')} remaining, EMI ₹${l.emiAmount||0}`
   ).join(', ') || 'None'}
 
-📈 INVESTMENTS
+INVESTMENTS
 - Total invested: ₹${totalInvested.toLocaleString('en-IN')}
-- Current portfolio value: ₹${portfolioValue.toLocaleString('en-IN')}
-- Total returns: ₹${investmentReturns.toLocaleString('en-IN')} (${
-    totalInvested > 0
-      ? ((investmentReturns/totalInvested)*100).toFixed(1)
-      : 0
+- Portfolio value: ₹${portfolioValue.toLocaleString('en-IN')}
+- Returns: ₹${investmentReturns.toLocaleString('en-IN')} (${
+    totalInvested > 0 ? ((investmentReturns/totalInvested)*100).toFixed(1) : 0
   }%)
 
-🎯 GOALS
-- Active goals: ${activeGoals.length}
-- Completed goals: ${completedGoals}
+GOALS
+- Active: ${activeGoals.length}, Completed: ${completedGoals}
 - Total target: ₹${totalGoalTarget.toLocaleString('en-IN')}
 - Total saved: ₹${totalGoalSaved.toLocaleString('en-IN')}
-- Goals: ${activeGoals.slice(0,3).map(g =>
-    `${g.title}(${g.progressPercent||0}% done, ₹${
-      (g.remainingAmount||0).toLocaleString('en-IN')
-    } left)`
+- Details: ${activeGoals.slice(0,5).map(g =>
+    `"${g.title}" ${g.progressPercent||0}% done, ₹${(g.remainingAmount||0).toLocaleString('en-IN')} left`
   ).join(', ') || 'None'}
 
-💳 BILLS
-- Monthly bill obligations: ₹${monthlyBills.toLocaleString('en-IN')}
-- Unpaid this month: ${unpaidBills.length}
-- Urgent bills: ${unpaidBills.slice(0,3).map(b =>
-    `${b.title}(₹${b.amount} due ${b.dueDate}th)`
-  ).join(', ') || 'None'}
+BILLS & REMINDERS (ALL bills, not just urgent ones)
+- Total monthly bill obligations: ₹${monthlyBills.toLocaleString('en-IN')}
+- Total bills tracked: ${bills.length}
+${billDetails ? `- All bills:\n  - ${billDetails}` : '- No bills tracked yet'}
 
-📊 NET WORTH SUMMARY
-- Assets (investments): ₹${portfolioValue.toLocaleString('en-IN')}
-- Liabilities (loans): ₹${totalLoanDebt.toLocaleString('en-IN')}
-- Estimated net worth: ₹${netWorth.toLocaleString('en-IN')}
+NET WORTH
+- Assets: ₹${portfolioValue.toLocaleString('en-IN')}
+- Liabilities: ₹${totalLoanDebt.toLocaleString('en-IN')}
+- Net worth: ₹${netWorth.toLocaleString('en-IN')}
 - Savings rate: ${savingsRate}%
 `.trim();
 
@@ -194,29 +220,33 @@ Data as of: ${now.toLocaleDateString('en-IN')}
 Note: Could not fetch complete financial data.`;
     }
 
-    // Build messages array
     const messages = [
       {
         role: 'system',
-        content: `You are Paisa Pulse AI — a personal financial advisor 
-for ${req.user.name}. You have their complete financial data below.
+        content: `You are Paisa Pulse AI — a personal financial advisor
+for ${req.user.name}. You have their COMPLETE financial data below,
+including every single bill reminder they've set up, their pending
+expense approvals with full details, and their recent transactions.
 
 ${contextText}
 
 YOUR BEHAVIOR:
-- ALWAYS use their actual numbers. Never say "I don't have access 
-  to your data" — you have it all above.
-- When asked general questions like "how am I doing" or 
-  "give me a summary", analyze ALL sections above and give 
-  a complete picture
-- Point out concerns: over-budget events, high EMI-to-income 
-  ratio, unpaid bills, slow goal progress
-- Be encouraging but honest
-- Keep responses to 3-4 sentences MAX unless user asks for detail
-- Use ₹ for all Indian currency amounts
-- If a section has no data (None), acknowledge it and suggest 
-  they start tracking that category
-- Never make up numbers — only use what's in the context above`,
+- ALWAYS use their actual numbers and data. You have EVERYTHING above.
+- When asked about bills, reminders, or "how many days left", look in
+  the BILLS & REMINDERS section — every bill is listed with its title,
+  amount, frequency, due date, due month, payment method, paid status,
+  whether it's due this month, and exactly how many days until it's
+  next due.
+- When asked about pending approvals, look in the PERSONAL EXPENSES
+  section — every pending item is listed with its description, amount,
+  category, and date.
+- Never say "I don't have access to your data" or "I couldn't find
+  details" — you have it ALL above. If a section genuinely has no
+  data, say "You haven't added any [X] yet" instead.
+- Be specific: use bill titles, amounts, and dates from the data.
+- Keep responses to 3-4 sentences MAX unless user asks for detail.
+- Use ₹ for all amounts.
+- Never make up numbers.`,
       },
       ...history.slice(-6).map((msg) => ({
         role:    msg.role,

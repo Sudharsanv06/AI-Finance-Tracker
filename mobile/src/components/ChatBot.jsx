@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, FlatList, Modal, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Animated, PanResponder, Dimensions,
+  Platform, Animated, PanResponder, Dimensions, Keyboard,
 } from 'react-native';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -43,6 +43,27 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const listRef               = useRef(null);
 
+  // ── Manual keyboard height tracking ─────────────────────────────────
+  // KeyboardAvoidingView doesn't work reliably inside Modal on Android.
+  // Instead, we listen to keyboard events directly and add bottom padding.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   // ── Draggable FAB position ───────────────────────────────────────────
   const pan = useRef(
     new Animated.ValueXY({
@@ -75,7 +96,6 @@ export default function ChatBot() {
           friction: 6,
         }).start();
 
-        // Tiny movement = treat as a tap, open the chat
         const dist = Math.abs(gesture.dx) + Math.abs(gesture.dy);
         if (dist < 6) {
           setIsOpen(true);
@@ -94,11 +114,12 @@ export default function ChatBot() {
     }, [user?.name])
   );
 
+  // Auto-scroll with a slight delay to let layout settle (prevents glitch)
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
         listRef.current?.scrollToEnd({ animated: true });
-      }, 150);
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [messages, loading, isOpen]);
@@ -162,12 +183,15 @@ export default function ChatBot() {
         </View>
       </Animated.View>
 
-      <Modal visible={isOpen} animationType="slide" presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}>
-        <KeyboardAvoidingView
-          style={s.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-        >
+      {/* Chat Modal */}
+      <Modal
+        visible={isOpen}
+        animationType="slide"
+        presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <View style={[s.container, { paddingBottom: keyboardHeight }]}>
+          {/* Header */}
           <View style={s.header}>
             <View style={s.headerLeft}>
               <View style={s.headerAvatar}>
@@ -197,6 +221,7 @@ export default function ChatBot() {
             </View>
           </View>
 
+          {/* Messages */}
           <FlatList
             ref={listRef}
             data={messages}
@@ -221,6 +246,7 @@ export default function ChatBot() {
             }
           />
 
+          {/* Suggestions */}
           {messages.length <= 1 && !loading && (
             <View style={s.suggestRow}>
               {SUGGESTIONS.map((sg) => (
@@ -235,6 +261,7 @@ export default function ChatBot() {
             </View>
           )}
 
+          {/* Input */}
           <View style={s.inputRow}>
             <TextInput
               style={s.input}
@@ -254,7 +281,7 @@ export default function ChatBot() {
               <Ionicons name="send" size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
     </>
   );

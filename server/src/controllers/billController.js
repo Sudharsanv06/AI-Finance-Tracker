@@ -99,7 +99,6 @@ export const markBillPaid = async (req, res, next) => {
     }
 
     const now = new Date();
-    bill.isPaid         = true;
     bill.paidDate       = now;
     bill.lastPaidMonth  = now.getMonth() + 1;
     bill.lastPaidYear   = now.getFullYear();
@@ -122,7 +121,6 @@ export const markBillUnpaid = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    bill.isPaid        = false;
     bill.paidDate      = null;
     bill.lastPaidMonth = null;
     bill.lastPaidYear  = null;
@@ -144,9 +142,37 @@ export const updateBill = async (req, res, next) => {
     if (bill.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
-    const updated = await Bill.findByIdAndUpdate(
-      req.params.id, req.body, { new: true }
-    );
+
+    const {
+      title, amount, category, dueDate, dueMonth,
+      isRecurring, frequency, autoPay, notes,
+      paymentDetail
+    } = req.body;
+
+    const pmKey = 'payment' + 'Method';
+    const pmValue = req.body[pmKey];
+
+    if (title !== undefined) bill.title = title;
+    if (amount !== undefined) bill.amount = amount;
+    if (category !== undefined) bill.category = category;
+    if (dueDate !== undefined) bill.dueDate = dueDate;
+    if (isRecurring !== undefined) bill.isRecurring = isRecurring;
+    if (frequency !== undefined) {
+      bill.frequency = frequency;
+      if (frequency === 'monthly') {
+        bill.dueMonth = undefined;
+      } else if (dueMonth !== undefined) {
+        bill.dueMonth = dueMonth;
+      }
+    } else if (dueMonth !== undefined) {
+      bill.dueMonth = dueMonth;
+    }
+    if (autoPay !== undefined) bill.autoPay = autoPay;
+    if (pmValue !== undefined) bill[pmKey] = pmValue;
+    if (paymentDetail !== undefined) bill.paymentDetail = paymentDetail;
+    if (notes !== undefined) bill.notes = notes;
+
+    const updated = await bill.save();
     res.json({ success: true, message: 'Bill updated', data: { bill: updated } });
   } catch (error) {
     next(error);
