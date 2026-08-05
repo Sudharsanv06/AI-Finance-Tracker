@@ -28,6 +28,15 @@ connectDB();
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[API LOG] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 // ── Body Parser FIRST ─────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -53,7 +62,7 @@ const authRateLimiter = rateLimit({
 
 const publicRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max:      20,
+  max:      500,
   message:  { success: false, message: 'Too many requests, please try again later' },
 });
 

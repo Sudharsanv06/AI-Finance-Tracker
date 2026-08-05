@@ -4,9 +4,9 @@ import api          from '../services/api';
 import { getInitials } from '../utils/helpers';
 
 const ROLE_CONFIG = {
-  Organizer:    { color: 'bg-teal-50 text-teal border-teal-200',     icon: '🎯' },
-  Approver:     { color: 'bg-amber-50 text-amber-700 border-amber-200', icon: '✅' },
-  FinanceAdmin: { color: 'bg-green-50 text-green-700 border-green-200', icon: '💼' },
+  Organizer:    { color: 'bg-teal-50 text-teal border-teal-200',     dotColor: 'bg-teal' },
+  Approver:     { color: 'bg-amber-50 text-amber-700 border-amber-200', dotColor: 'bg-amber-500' },
+  FinanceAdmin: { color: 'bg-green-50 text-green-700 border-green-200', dotColor: 'bg-green-600' },
 };
 
 export default function Profile() {
@@ -17,6 +17,7 @@ export default function Profile() {
   const [nameLoading, setNameLoading] = useState(false);
   const [nameMsg,     setNameMsg]     = useState('');
   const [nameError,   setNameError]   = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // ── Password update ───────────────────────────────────────────────────────
   const [currentPassword,  setCurrentPassword]  = useState('');
@@ -75,6 +76,34 @@ export default function Profile() {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      alert('File size must be under 1MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result;
+      setUploadingPhoto(true);
+      try {
+        const res = await api.put('/auth/profile', {
+          name: user.name,
+          profilePhoto: base64String,
+        });
+        updateUser(res.data.data.user);
+      } catch (err) {
+        alert(err.response?.data?.message || 'Failed to upload photo');
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="page">
       <div className="page-container max-w-2xl">
@@ -89,19 +118,34 @@ export default function Profile() {
 
         {/* ── User Card ─────────────────────────────────────────── */}
         <div className="card p-6 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-teal flex items-center
+          <div className="relative group w-16 h-16 rounded-2xl bg-teal overflow-hidden flex items-center
                           justify-center text-cream text-2xl font-bold
-                          font-playfair shrink-0 shadow-teal-md">
-            {getInitials(user?.name)}
+                          font-playfair shrink-0 shadow-teal-md cursor-pointer">
+            {user?.profilePhoto ? (
+              <img src={user.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              getInitials(user?.name)
+            )}
+            <label htmlFor="photo-upload" className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center
+                                                    opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <span className="text-[10px] text-cream font-sans font-normal">
+                {uploadingPhoto ? '...' : 'Edit'}
+              </span>
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="photo-upload"
+              onChange={handlePhotoChange}
+              disabled={uploadingPhoto}
+            />
           </div>
           <div>
             <h2 className="text-xl font-bold text-teal font-playfair">
               {user?.name}
             </h2>
             <p className="text-sm text-teal-400 mt-0.5">{user?.email}</p>
-            <span className={`badge border mt-2 ${roleConfig.color}`}>
-              {roleConfig.icon} {user?.role === 'FinanceAdmin' ? 'Finance Admin' : user?.role}
-            </span>
           </div>
         </div>
 
@@ -114,14 +158,21 @@ export default function Profile() {
 
           {nameError && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50
-                            border border-red-200 text-red-600 text-sm">
-              ⚠️ {nameError}
+                            border border-red-200 text-red-600 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" />
+                <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
+              </svg>
+              <span>{nameError}</span>
             </div>
           )}
           {nameMsg && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-green-50
-                            border border-green-200 text-green-700 text-sm">
-              ✅ {nameMsg}
+                            border border-green-200 text-green-700 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{nameMsg}</span>
             </div>
           )}
 
@@ -157,14 +208,21 @@ export default function Profile() {
 
           {passError && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50
-                            border border-red-200 text-red-600 text-sm">
-              ⚠️ {passError}
+                            border border-red-200 text-red-600 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" />
+                <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
+              </svg>
+              <span>{passError}</span>
             </div>
           )}
           {passMsg && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-green-50
-                            border border-green-200 text-green-700 text-sm">
-              ✅ {passMsg}
+                            border border-green-200 text-green-700 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{passMsg}</span>
             </div>
           )}
 
@@ -240,24 +298,6 @@ export default function Profile() {
           </form>
         </div>
 
-        {/* ── Danger Zone ───────────────────────────────────────── */}
-        <div className="card p-6 border-red-200">
-          <h2 className="section-title mb-1 text-red-600">Danger Zone</h2>
-          <p className="text-xs text-teal-400 mb-5">
-            Irreversible account actions
-          </p>
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to logout?')) {
-                logout();
-                window.location.href = '/login';
-              }
-            }}
-            className="btn-danger w-full"
-          >
-            Logout from all devices
-          </button>
-        </div>
 
       </div>
     </div>

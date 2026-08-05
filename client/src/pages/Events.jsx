@@ -9,6 +9,33 @@ import { formatCurrency } from '../utils/helpers';
 
 const STATUS_FILTERS = ['All','active','upcoming','completed','draft'];
 
+const CalendarIcon = ({ className = "w-5 h-5 text-teal" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+  </svg>
+);
+
+const WalletIcon = ({ className = "w-5 h-5 text-teal" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a3 3 0 00-3-3H3m18 3v3a3 3 0 01-3 3H3M21 12H18a2 2 0 110-4h3" />
+  </svg>
+);
+
+const ReceiptIcon = ({ className = "w-5 h-5 text-teal" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l2-2 4 4m0-7v.01M12 21a9 9 0 110-18 9 9 0 010 18z" />
+  </svg>
+);
+
+const WarningIcon = ({ className = "w-5 h-5 text-teal" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" />
+    <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
+  </svg>
+);
+
 function Skeleton() {
   return (
     <div className="card p-5 animate-pulse space-y-3">
@@ -40,11 +67,13 @@ export default function Events() {
   const [deleteLoading,setDeleteLoading]      = useState(false);
 
   const userRole  = user?.role || 'Organizer';
-  const canCreate = userRole === 'Organizer' || userRole === 'FinanceAdmin';
+  const canCreate = true;
 
   const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    setError('');
+    Promise.resolve().then(() => {
+      setLoading(true);
+      setError('');
+    });
     try {
       const res = await eventService.getEvents();
       setEvents(res.data?.events || []);
@@ -55,7 +84,11 @@ export default function Events() {
     }
   }, []);
 
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchEvents();
+    });
+  }, [fetchEvents]);
 
   // Filtered list
   const filtered = events.filter((e) => {
@@ -119,13 +152,13 @@ export default function Events() {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Total Events',  value: events.length,          icon: '📅' },
-            { label: 'Total Budget',  value: formatCurrency(totalBudget), icon: '💰' },
-            { label: 'Total Spent',   value: formatCurrency(totalSpent),  icon: '💸' },
+            { label: 'Total Events',  value: events.length,          icon: <CalendarIcon /> },
+            { label: 'Total Budget',  value: formatCurrency(totalBudget), icon: <WalletIcon /> },
+            { label: 'Total Spent',   value: formatCurrency(totalSpent),  icon: <ReceiptIcon /> },
           ].map((s) => (
             <div key={s.label}
                  className="card p-4 flex items-center gap-3">
-              <span className="text-2xl">{s.icon}</span>
+              <span>{s.icon}</span>
               <div>
                 <p className="text-xs text-teal-400 uppercase
                               tracking-wider">{s.label}</p>
@@ -141,7 +174,8 @@ export default function Events() {
           <div className="bg-red-50 border border-red-200 rounded-xl
                           px-4 py-3 text-sm text-red-600 font-semibold
                           flex items-center gap-2">
-            ⚠️ {overCount} event{overCount > 1 ? 's' : ''} over budget
+            <WarningIcon />
+            <span>{overCount} event{overCount > 1 ? 's' : ''} over budget</span>
           </div>
         )}
 
@@ -166,8 +200,11 @@ export default function Events() {
           </div>
 
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2
-                             text-teal-300 text-sm">🔍</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+              <svg className="w-4 h-4 text-teal-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
             <input
               type="text"
               value={search}
@@ -181,8 +218,9 @@ export default function Events() {
         {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl
-                          px-4 py-3 text-sm text-red-600">
-            ⚠️ {error}
+                          px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+            <WarningIcon />
+            <span>{error}</span>
           </div>
         )}
 
@@ -194,7 +232,7 @@ export default function Events() {
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="📅"
+            icon={<CalendarIcon className="w-12 h-12 text-teal-300" />}
             title={activeFilter === 'All' ? 'No events yet' : `No ${activeFilter} events`}
             description={
               canCreate

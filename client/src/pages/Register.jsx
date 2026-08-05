@@ -1,54 +1,40 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const ROLES = [
-  {
-    value: 'Organizer',
-    label: 'Organizer',
-    desc:  'Create events & submit expenses',
-    icon:  '🎯',
-  },
-  {
-    value: 'Approver',
-    label: 'Approver',
-    desc:  'Review & approve expenses',
-    icon:  '✅',
-  },
-  {
-    value: 'FinanceAdmin',
-    label: 'Finance Admin',
-    desc:  'Full access & payments',
-    icon:  '💼',
-  },
-];
+import logoImg from '../assets/adaptive-icon.png';
 
 export default function Register() {
-  const navigate          = useNavigate();
-  const { register }      = useAuth();
+  const navigate       = useNavigate();
+  const { register, isAuthenticated } = useAuth();
 
-  const [name,            setName]            = useState('');
-  const [email,           setEmail]           = useState('');
-  const [password,        setPassword]        = useState('');
+  const [name,     setName]     = useState('');
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role,            setRole]            = useState('Organizer');
-  const [loading,         setLoading]         = useState(false);
-  const [error,           setError]           = useState('');
+  const [role]                  = useState('FinanceAdmin');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+
+  // Redirect if logged in
+  if (isAuthenticated) {
+    navigate('/dashboard');
+    return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!name.trim())     return setError('Full name is required');
-    if (!email.trim())    return setError('Email is required');
-    if (password.length < 6)
-                          return setError('Password must be at least 6 characters');
-    if (password !== confirmPassword)
-                          return setError('Passwords do not match');
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      return setError('All fields are required');
+    }
+    if (password !== confirmPassword) {
+      return setError('Passwords do not match');
+    }
 
     setLoading(true);
     try {
-      await register({ name: name.trim(), email: email.trim(), password, role });
+      await register({ name, email, password, role });
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
@@ -58,11 +44,10 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-cream flex items-center
-                    justify-center px-4 py-12">
-
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen bg-teal-50 flex flex-col justify-center
+                    items-center p-4 relative font-sans">
+      {/* Decorative blobs */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-96 h-96
                         rounded-full bg-teal/5" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96
@@ -75,15 +60,14 @@ export default function Register() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center
                           w-14 h-14 rounded-2xl bg-teal
-                          shadow-teal-md mb-4">
-            <span className="text-cream text-2xl font-bold
-                             font-playfair">E</span>
+                          shadow-teal-md mb-4 overflow-hidden">
+            <img src={logoImg} alt="Paisa Pulse Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-teal font-playfair">
-            EventFi
+            Paisa Pulse
           </h1>
           <p className="text-sm text-teal-400 mt-1">
-            Smart Event Finance Manager
+            Smart Personal & Event Finance Manager
           </p>
         </div>
 
@@ -93,15 +77,19 @@ export default function Register() {
             Create Account
           </h2>
           <p className="text-sm text-teal-400 mb-6">
-            Join EventFi and manage event finances
+            Join Paisa Pulse and manage your finances
           </p>
 
           {/* Error */}
           {error && (
             <div className="mb-5 px-4 py-3 rounded-xl bg-red-50
                             border border-red-200 text-red-600
-                            text-sm animate-scaleIn">
-              ⚠️ {error}
+                            text-sm animate-scaleIn flex items-center gap-2">
+              <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" />
+                <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
@@ -131,35 +119,6 @@ export default function Register() {
                 className="input"
                 autoComplete="email"
               />
-            </div>
-
-            {/* Role selector */}
-            <div>
-              <label className="label">Your Role</label>
-              <div className="grid grid-cols-3 gap-2">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRole(r.value)}
-                    className={`flex flex-col items-center gap-1
-                                px-2 py-3 rounded-xl border-2 text-center
-                                transition-all duration-200 ${
-                      role === r.value
-                        ? 'border-teal bg-teal-50 text-teal'
-                        : 'border-teal-100 bg-white text-teal-400 hover:border-teal-200'
-                    }`}
-                  >
-                    <span className="text-xl">{r.icon}</span>
-                    <span className="text-[11px] font-bold leading-tight">
-                      {r.label}
-                    </span>
-                    <span className="text-[9px] opacity-70 leading-tight">
-                      {r.desc}
-                    </span>
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Password */}

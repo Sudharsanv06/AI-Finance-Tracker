@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import loanService   from '../services/loanService';
 import ConfirmModal  from '../components/ConfirmModal';
 import Pagination    from '../components/Pagination';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency } from '../utils/helpers';
 
 const CATEGORIES = [
   'Home Loan','Car Loan','Personal Loan','Education Loan',
@@ -10,15 +10,108 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_ICONS = {
-  'Home Loan':       '🏠',
-  'Car Loan':        '🚗',
-  'Personal Loan':   '👤',
-  'Education Loan':  '🎓',
-  'Business Loan':   '🏢',
-  'Gold Loan':       '🥇',
-  'Friend/Family':   '👨‍👩‍👦',
-  'Other':           '💰',
+  'Home Loan': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
+  'Car Loan': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm0 0h5a2 2 0 002-2v-4a2 2 0 00-2-2H9m-4 6H3m14-1H3M13 13V9a2 2 0 012-2h3.5a1.5 1.5 0 011.5 1.5V13a2 2 0 01-2 2H17m-4-1h4m1 3a2 2 0 100-4 2 2 0 000 4z" />
+    </svg>
+  ),
+  'Personal Loan': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  'Education Loan': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6M4 11v6a1 1 0 001 1h2a1 1 0 001-1v-6" />
+    </svg>
+  ),
+  'Business Loan': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  'Gold Loan': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.286L13 21l-2.286-6.857L5 12l5.714-2.286L13 3z" />
+    </svg>
+  ),
+  'Friend/Family': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
+  Other: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01" />
+    </svg>
+  ),
 };
+
+
+const getCategoryColor = (cat) => {
+  const map = {
+    'Home Loan':      'bg-blue-500',
+    'Car Loan':       'bg-amber-500',
+    'Personal Loan':  'bg-teal',
+    'Education Loan': 'bg-indigo-500',
+    'Business Loan':  'bg-emerald-500',
+    'Gold Loan':      'bg-yellow-500',
+    'Friend/Family':  'bg-purple-500',
+    'Other':          'bg-slate-400',
+  };
+  return map[cat] || 'bg-teal';
+};
+
+const CalendarIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+  </svg>
+);
+
+const WalletIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a3 3 0 00-3-3H3m18 3v3a3 3 0 01-3 3H3M21 12H18a2 2 0 110-4h3" />
+  </svg>
+);
+
+const TrendingIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+  </svg>
+);
+
+const ArrowDownIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 13l-7 7-7-7m14-6l-7 7-7-7" />
+  </svg>
+);
+
+const ArrowUpIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+  </svg>
+);
+
+const AlertIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" />
+    <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
+  </svg>
+);
+
+const HandshakeIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
 
 // ── EMI Calculator Widget ─────────────────────────────────────────────────────
 function EMICalculator() {
@@ -41,7 +134,7 @@ function EMICalculator() {
 
   return (
     <div className="card p-6">
-      <h2 className="section-title mb-4">🧮 EMI Calculator</h2>
+      <h2 className="section-title mb-4">EMI Calculator</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="label">Loan Amount (₹)</label>
@@ -73,13 +166,13 @@ function EMICalculator() {
       {result && (
         <div className="mt-4 grid grid-cols-3 gap-4 animate-scaleIn">
           {[
-            { label: 'Monthly EMI',      value: result.emi,           icon: '📅' },
-            { label: 'Total Payable',    value: result.totalPayable,  icon: '💰' },
-            { label: 'Total Interest',   value: result.totalInterest, icon: '📊' },
+            { label: 'Monthly EMI',      value: result.emi,           icon: <CalendarIcon className="w-5 h-5 text-teal" /> },
+            { label: 'Total Payable',    value: result.totalPayable,  icon: <WalletIcon className="w-5 h-5 text-teal" /> },
+            { label: 'Total Interest',   value: result.totalInterest, icon: <TrendingIcon className="w-5 h-5 text-teal" /> },
           ].map((s) => (
             <div key={s.label}
-              className="bg-teal-50 rounded-xl p-4 text-center border border-teal-100">
-              <span className="text-2xl block mb-1">{s.icon}</span>
+              className="bg-teal-50 rounded-xl p-4 text-center border border-teal-100 flex flex-col items-center">
+              <span className="block mb-1">{s.icon}</span>
               <p className="text-lg font-bold text-teal font-playfair">
                 {formatCurrency(s.value)}
               </p>
@@ -169,8 +262,11 @@ function LoanModal({ loan, onClose, onSaved }) {
         </div>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-            ⚠️ {error}
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
@@ -181,8 +277,26 @@ function LoanModal({ loan, onClose, onSaved }) {
             <label className="label">Loan Type *</label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { val: 'taken', label: 'Loan Taken', icon: '⬇️', desc: 'I borrowed money' },
-                { val: 'given', label: 'Loan Given', icon: '⬆️', desc: 'I lent money' },
+                {
+                  val: 'taken',
+                  label: 'Loan Taken',
+                  icon: (
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 13l-7 7-7-7m14-6l-7 7-7-7" />
+                    </svg>
+                  ),
+                  desc: 'I borrowed money',
+                },
+                {
+                  val: 'given',
+                  label: 'Loan Given',
+                  icon: (
+                    <svg className="w-6 h-6 text-teal" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                    </svg>
+                  ),
+                  desc: 'I lent money',
+                },
               ].map((t) => (
                 <button key={t.val} type="button" onClick={() => setType(t.val)}
                   className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-center transition-all ${
@@ -280,7 +394,12 @@ function LoanModal({ loan, onClose, onSaved }) {
           {/* EMI Preview */}
           {previewEMI && (
             <div className="bg-teal-50 rounded-xl p-4 flex items-center gap-3 border border-teal-100 animate-scaleIn">
-              <span className="text-2xl">📅</span>
+              <svg className="w-6 h-6 text-teal shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
               <div>
                 <p className="text-xs text-teal-400">Estimated Monthly EMI</p>
                 <p className="text-xl font-bold text-teal font-playfair">
@@ -369,8 +488,11 @@ function PaymentModal({ loan, onClose, onSaved }) {
         </div>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-            ⚠️ {error}
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
@@ -435,7 +557,7 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${
             isTaken ? 'bg-red-50' : 'bg-green-50'
           }`}>
-            {CATEGORY_ICONS[loan.category]}
+            <span>{CATEGORY_ICONS[loan.category] || CATEGORY_ICONS.Other}</span>
           </div>
           <div className="min-w-0">
             <h3 className="font-bold text-teal text-sm font-playfair truncate">
@@ -451,7 +573,7 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
             isTaken ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'
           }`}>
-            {isTaken ? '⬇️ Taken' : '⬆️ Given'}
+            {isTaken ? 'Taken' : 'Given'}
           </span>
         </div>
       </div>
@@ -527,7 +649,7 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
         {loan.status === 'active' && (
           <button onClick={() => onPayment(loan)}
             className="flex-1 btn-primary text-xs py-2">
-            💳 Pay EMI
+            Pay EMI
           </button>
         )}
         <button onClick={() => onEdit(loan)}
@@ -536,7 +658,9 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
         </button>
         <button onClick={() => onDelete(loan._id)}
           className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all">
-          🗑️
+          <svg className="w-3.5 h-3.5 mx-auto" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
         </button>
       </div>
     </div>
@@ -560,7 +684,10 @@ export default function Loans() {
   const [error,       setError]       = useState('');
 
   const fetchAll = useCallback(async (page = 1) => {
-    setLoading(true);
+    Promise.resolve().then(() => {
+      setLoading(true);
+      setError('');
+    });
     try {
       const params = { page, limit: 6 };
       if (filterType   !== 'All') params.type   = filterType;
@@ -582,7 +709,11 @@ export default function Loans() {
     }
   }, [filterType, filterStatus]);
 
-  useEffect(() => { fetchAll(1); }, [fetchAll]);
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchAll(1);
+    });
+  }, [fetchAll]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -618,15 +749,15 @@ export default function Loans() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Borrowed',  value: summary?.totalTaken          || 0, icon: '⬇️', red: true  },
-            { label: 'Total Lent',      value: summary?.totalGiven          || 0, icon: '⬆️', red: false },
-            { label: 'Still Owe',       value: summary?.totalRemainingTaken || 0, icon: '😟', red: true  },
-            { label: 'Yet to Recover',  value: summary?.totalRemainingGiven || 0, icon: '🤝', red: false },
+            { label: 'Total Borrowed',  value: summary?.totalTaken          || 0, icon: <ArrowDownIcon className="w-5 h-5 text-red-600" />, red: true  },
+            { label: 'Total Lent',      value: summary?.totalGiven          || 0, icon: <ArrowUpIcon className="w-5 h-5 text-green-700" />, red: false },
+            { label: 'Still Owe',       value: summary?.totalRemainingTaken || 0, icon: <AlertIcon className="w-5 h-5 text-red-600" />, red: true  },
+            { label: 'Yet to Recover',  value: summary?.totalRemainingGiven || 0, icon: <HandshakeIcon className="w-5 h-5 text-teal" />, red: false },
           ].map((s) => (
             <div key={s.label}
               className={`card p-5 ${s.red && s.value > 0 ? 'border-red-200 bg-red-50/30' : ''}`}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">{s.icon}</span>
+                <span>{s.icon}</span>
                 <span className="text-xs text-teal-400 uppercase tracking-wider font-semibold">
                   {s.label}
                 </span>
@@ -643,7 +774,7 @@ export default function Loans() {
         {/* Monthly EMI banner */}
         {(summary?.monthlyEMI || 0) > 0 && (
           <div className="card p-5 flex items-center gap-4 border-amber-200 bg-amber-50/30">
-            <span className="text-3xl">📅</span>
+            <CalendarIcon className="w-6 h-6 text-amber-600" />
             <div>
               <p className="text-sm font-semibold text-teal-600">
                 Total Monthly EMI Obligation
@@ -672,7 +803,7 @@ export default function Loans() {
                 className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
                   filterType === t ? 'bg-teal text-cream' : 'text-teal-500 hover:text-teal'
                 }`}>
-                {t === 'All' ? 'All' : t === 'taken' ? '⬇️ Taken' : '⬆️ Given'}
+                {t === 'All' ? 'All' : t === 'taken' ? 'Taken' : 'Given'}
               </button>
             ))}
           </div>
@@ -690,8 +821,11 @@ export default function Loans() {
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-            ⚠️ {error}
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
@@ -704,7 +838,9 @@ export default function Loans() {
           </div>
         ) : loans.length === 0 ? (
           <div className="card p-12 text-center">
-            <span className="text-4xl mb-3 block">🤝</span>
+            <svg className="w-12 h-12 text-teal-300 mx-auto mb-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857" />
+            </svg>
             <h3 className="text-lg font-bold text-teal font-playfair mb-2">
               No loans recorded
             </h3>

@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'https://eventfi-server.onrender.com/api',
+  baseURL: 'https://paisa-pulse-server.onrender.com/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 });

@@ -15,15 +15,77 @@ const SOURCES = [
 ];
 
 const SOURCE_ICONS = {
-  Salary:               '💼',
-  Freelance:            '💻',
-  Business:             '🏢',
-  Rental:               '🏠',
-  'Investment Returns': '📈',
-  Bonus:                '🎁',
-  Gift:                 '🎀',
-  Other:                '💰',
+  Salary: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  Freelance: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  Business: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+  ),
+  Rental: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
+  'Investment Returns': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Bonus: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 0H4v13a2 2 0 002 2h12a2 2 0 002-2V8H12z" />
+    </svg>
+  ),
+  Gift: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  ),
+  Other: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01" />
+    </svg>
+  ),
 };
+
+
+const getSourceColor = (src) => {
+  const map = {
+    Salary:               'bg-blue-500',
+    Freelance:            'bg-indigo-500',
+    Business:             'bg-emerald-500',
+    Rental:               'bg-cyan-500',
+    'Investment Returns': 'bg-teal',
+    Bonus:                'bg-amber-500',
+    Gift:                 'bg-pink-500',
+    Other:                'bg-slate-400',
+  };
+  return map[src] || 'bg-teal';
+};
+
+const CalendarIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+  </svg>
+);
+
+const WalletIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a3 3 0 00-3-3H3m18 3v3a3 3 0 01-3 3H3M21 12H18a2 2 0 110-4h3" />
+  </svg>
+);
 
 // ── Income Form Modal ─────────────────────────────────────────────────────────
 function IncomeModal({ income, members, onClose, onSaved }) {
@@ -89,8 +151,11 @@ function IncomeModal({ income, members, onClose, onSaved }) {
         </div>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-            ⚠️ {error}
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
@@ -225,7 +290,10 @@ export default function Income() {
   const [error,        setError]        = useState('');
 
   const fetchAll = useCallback(async (page = 1) => {
-    setLoading(true);
+    Promise.resolve().then(() => {
+      setLoading(true);
+      setError('');
+    });
     try {
       const params = { page, limit: 10 };
       if (filterSource !== 'All') params.source = filterSource;
@@ -248,7 +316,11 @@ export default function Income() {
     }
   }, [filterSource]);
 
-  useEffect(() => { fetchAll(1); }, [fetchAll]);
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchAll(1);
+    });
+  }, [fetchAll]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -281,13 +353,13 @@ export default function Income() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { label: 'This Month',  value: summary?.monthlyTotal || 0, icon: '📅' },
-            { label: 'This Year',   value: summary?.yearlyTotal  || 0, icon: '📆' },
-            { label: 'All Time',    value: summary?.allTimeTotal || 0, icon: '💰' },
+            { label: 'This Month',  value: summary?.monthlyTotal || 0, icon: <CalendarIcon className="w-5 h-5 text-teal" /> },
+            { label: 'This Year',   value: summary?.yearlyTotal  || 0, icon: <CalendarIcon className="w-5 h-5 text-teal" /> },
+            { label: 'All Time',    value: summary?.allTimeTotal || 0, icon: <WalletIcon className="w-5 h-5 text-teal" /> },
           ].map((s) => (
             <div key={s.label} className="card p-5">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">{s.icon}</span>
+                <span>{s.icon}</span>
                 <span className="text-xs text-teal-400 uppercase tracking-wider font-semibold">
                   {s.label}
                 </span>
@@ -330,7 +402,7 @@ export default function Income() {
               {Object.entries(summary.bySource).map(([source, amount]) => (
                 <div key={source}
                   className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
-                  <span className="text-xl">{SOURCE_ICONS[source] || '💰'}</span>
+                  <span className={`w-3 h-3 rounded-full shrink-0 ${getSourceColor(source)}`} />
                   <div>
                     <p className="text-xs text-teal-400 font-medium">{source}</p>
                     <p className="text-sm font-bold text-teal">
@@ -357,8 +429,12 @@ export default function Income() {
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-            ⚠️ {error}
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+            <svg className="w-4 h-4 text-teal shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
@@ -369,8 +445,11 @@ export default function Income() {
             <p className="text-sm text-teal-400">Loading income...</p>
           </div>
         ) : incomes.length === 0 ? (
-          <div className="card p-12 text-center">
-            <span className="text-4xl mb-3 block">💰</span>
+          <div className="card p-12 text-center flex flex-col items-center">
+            <svg className="w-12 h-12 text-teal-300 mb-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a3 3 0 00-3-3H3m18 3v3a3 3 0 01-3 3H3M21 12H18a2 2 0 110-4h3" />
+            </svg>
             <h3 className="text-lg font-bold text-teal font-playfair mb-2">
               No income recorded
             </h3>
@@ -403,10 +482,9 @@ export default function Income() {
                         <td className="px-4 py-3 text-sm text-teal-600 whitespace-nowrap">
                           {formatDate(inc.date)}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="flex items-center gap-2 text-sm font-semibold text-teal">
-                            {SOURCE_ICONS[inc.source]} {inc.source}
-                          </span>
+                        <td className="px-4 py-3 flex items-center gap-2">
+                            <span className="text-teal shrink-0">{SOURCE_ICONS[inc.source] || SOURCE_ICONS.Other}</span>
+                            <span>{inc.source}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-teal-500">
                           {inc.description || '—'}
@@ -420,7 +498,7 @@ export default function Income() {
                         <td className="px-4 py-3">
                           {inc.isRecurring ? (
                             <span className="badge badge-active text-xs">
-                              🔄 {inc.frequency}
+                              {inc.frequency}
                             </span>
                           ) : (
                             <span className="text-xs text-teal-300">One-time</span>
@@ -431,12 +509,16 @@ export default function Income() {
                             <button
                               onClick={() => { setEditingIncome(inc); setShowModal(true); }}
                               className="text-teal-300 hover:text-teal transition-colors text-sm">
-                              ✏️
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
                             </button>
                             <button
                               onClick={() => setDeleteTarget(inc._id)}
-                              className="text-teal-300 hover:text-red-500 transition-colors text-sm">
-                              🗑️
+                              className="text-teal-300 hover:text-red-500 transition-colors text-sm flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
                           </div>
                         </td>

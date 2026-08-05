@@ -116,38 +116,8 @@ export default function ApprovalActions({
       {/* Action buttons */}
       <div className="flex gap-1.5 flex-wrap">
 
-        {/* Approver: approve + reject pending */}
-        {userRole === 'Approver' && status === 'Pending' && (
-          <>
-            <button
-              onClick={handleApprove}
-              disabled={!!loading}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold
-                         bg-green-50 hover:bg-green-100 text-green-700
-                         border border-green-200 disabled:opacity-50
-                         transition-all flex items-center gap-1"
-            >
-              {loading === 'approve'
-                ? <span className="spinner w-3 h-3" />
-                : '✓'} Approve
-            </button>
-            <button
-              onClick={handleReject}
-              disabled={!!loading}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold
-                         bg-red-50 hover:bg-red-100 text-red-600
-                         border border-red-200 disabled:opacity-50
-                         transition-all flex items-center gap-1"
-            >
-              {loading === 'reject'
-                ? <span className="spinner w-3 h-3" />
-                : '✕'} Reject
-            </button>
-          </>
-        )}
-
-        {/* FinanceAdmin: full control */}
-        {userRole === 'FinanceAdmin' && (
+        {/* Full control for all users */}
+        {true && (
           <>
             {status === 'Pending' && (
               <button
@@ -174,7 +144,11 @@ export default function ApprovalActions({
               >
                 {loading === 'pay'
                   ? <span className="spinner w-3 h-3" />
-                  : '💳'} Mark Paid
+                  : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  )} Mark Paid
               </button>
             )}
             {(status === 'Pending' || status === 'Approved') && (

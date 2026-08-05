@@ -6,6 +6,7 @@ import Loan from '../models/Loan.js';
 import Goal from '../models/Goal.js';
 import Bill from '../models/Bill.js';
 import Investment from '../models/Investment.js';
+import FamilyMember from '../models/FamilyMember.js';
 
 const getGroq = () => {
   if (!process.env.GROQ_API_KEY) {
@@ -44,6 +45,7 @@ export const chat = async (req, res, next) => {
         goals,
         bills,
         investments,
+        familyMembers,
         expenseAgg,
       ] = await Promise.all([
         Event.find({ createdBy: userId }).limit(10),
@@ -55,6 +57,7 @@ export const chat = async (req, res, next) => {
         Goal.find({ userId }),
         Bill.find({ userId }),
         Investment.find({ userId }),
+        FamilyMember.find({ userId }),
         Expense.aggregate([
           { $match: { submittedBy: userId, approvalStatus: { $ne: 'Rejected' } } },
           {
@@ -113,6 +116,7 @@ export const chat = async (req, res, next) => {
       const allTimeExpenseTotal = expenseAgg[0]?.allTime?.[0]?.total || 0;
 
       const netWorth = portfolioValue - totalLoanDebt;
+      const totalFamilyMonthlyIncome = familyMembers.reduce((s, m) => s + (m.monthlyIncome || 0), 0);
       const savingsRate = monthlyIncome > 0
         ? Math.round(
             ((monthlyIncome - monthlyEMI - monthlyBills - monthlyExpenseTotal) /
@@ -206,6 +210,11 @@ BILLS & REMINDERS (ALL bills, not just urgent ones)
 - Total monthly bill obligations: ₹${monthlyBills.toLocaleString('en-IN')}
 - Total bills tracked: ${bills.length}
 ${billDetails ? `- All bills:\n  - ${billDetails}` : '- No bills tracked yet'}
+
+FAMILY MEMBERS
+- Total family members: ${familyMembers.length}
+- Total family monthly income: ₹${totalFamilyMonthlyIncome.toLocaleString('en-IN')}
+- Members: ${familyMembers.map(m => `"${m.name}" (${m.relation}, monthly income: ₹${(m.monthlyIncome || 0).toLocaleString('en-IN')})`).join(', ') || 'None'}
 
 NET WORTH
 - Assets: ₹${portfolioValue.toLocaleString('en-IN')}

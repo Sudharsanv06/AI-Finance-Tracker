@@ -131,7 +131,7 @@ export const getMe = async (req, res, next) => {
 // PUT /api/auth/profile
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, profilePhoto } = req.body;
 
     if (!name?.trim()) {
       return res.status(400).json({
@@ -141,6 +141,9 @@ export const updateProfile = async (req, res, next) => {
     }
 
     const updateFields = { name: name.trim() };
+    if (profilePhoto !== undefined) {
+      updateFields.profilePhoto = profilePhoto;
+    }
     if (email) {
       const emailLower = email.toLowerCase().trim();
       if (emailLower !== req.user.email) {

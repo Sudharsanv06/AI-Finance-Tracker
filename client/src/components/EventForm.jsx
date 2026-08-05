@@ -24,16 +24,18 @@ export default function EventForm({ event, onClose, onSaved }) {
   // Populate form when editing
   useEffect(() => {
     if (event) {
-      setName(event.name || '');
-      setDescription(event.description || '');
-      setDate(
-        event.date
-          ? new Date(event.date).toISOString().split('T')[0]
-          : ''
-      );
-      setCategory(event.category  || 'Conference');
-      setTotalBudget(event.totalBudget || '');
-      setStatus(event.status || 'active');
+      Promise.resolve().then(() => {
+        setName(event.name || '');
+        setDescription(event.description || '');
+        setDate(
+          event.date
+            ? new Date(event.date).toISOString().split('T')[0]
+            : ''
+        );
+        setCategory(event.category  || 'Conference');
+        setTotalBudget(event.totalBudget || '');
+        setStatus(event.status || 'active');
+      });
     }
   }, [event]);
 
@@ -106,9 +108,11 @@ export default function EventForm({ event, onClose, onSaved }) {
 
         {/* Error */}
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50
-                          border border-red-200 text-red-600 text-sm">
-            ⚠️ {error}
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 

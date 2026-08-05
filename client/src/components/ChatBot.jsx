@@ -1,6 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import api from '../services/api';
 
+// ── Bot Icon Component ──────────────────────────────────────────────────────
+const BotIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="11" width="18" height="10" rx="2" />
+    <circle cx="8" cy="16" r="1.5" />
+    <circle cx="16" cy="16" r="1.5" />
+    <path strokeLinecap="round" d="M9 2h6M12 2v3M12 8a3 3 0 013 3H9a3 3 0 013-3z" />
+  </svg>
+);
+
+const TrashIcon = ({ className = "w-4 h-4 text-cream" }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 const SUGGESTIONS = [
   'How is my budget utilization?',
   'Which events are over budget?',
@@ -20,7 +36,7 @@ function Message({ msg }) {
           ? 'bg-teal text-cream'
           : 'bg-cream-dark text-teal border border-teal-100'
       }`}>
-        {isUser ? 'U' : '🤖'}
+        {isUser ? 'U' : <BotIcon className="w-4 h-4 text-teal" />}
       </div>
 
       {/* Bubble */}
@@ -41,8 +57,8 @@ function TypingIndicator() {
     <div className="flex gap-2">
       <div className="w-7 h-7 rounded-full bg-cream-dark border
                       border-teal-100 flex items-center justify-center
-                      text-xs shrink-0">
-        🤖
+                      shrink-0">
+        <BotIcon className="w-4 h-4 text-teal" />
       </div>
       <div className="bg-white border border-teal-100 rounded-2xl
                       rounded-tl-sm px-4 py-3 shadow-teal-sm">
@@ -65,7 +81,7 @@ export default function ChatBot() {
   const [messages, setMessages] = useState([
     {
       role:    'assistant',
-      content: "Hi! I'm your EventFi AI assistant. Ask me anything about your events, budgets, or expenses. 💼",
+      content: "Hi! I'm your Paisa Pulse AI assistant. Ask me anything about your events, budgets, or expenses.",
     },
   ]);
   const [input,    setInput]    = useState('');
@@ -84,7 +100,9 @@ export default function ChatBot() {
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
-      setUnread(0);
+      Promise.resolve().then(() => {
+        setUnread(0);
+      });
     }
   }, [isOpen]);
 
@@ -98,35 +116,20 @@ export default function ChatBot() {
     setLoading(true);
 
     try {
-      // Build history (exclude first greeting)
-      const history = messages.slice(1).map((m) => ({
-        role:    m.role,
-        content: m.content,
-      }));
-
       const res = await api.post('/ai/chat', {
         message: messageText,
-        history,
+        history: messages,
       });
 
-      const aiMsg = {
-        role:    'assistant',
-        content: res.data.data.reply,
-      };
-
-      setMessages((prev) => [...prev, aiMsg]);
-
-      // If chat is closed, show unread badge
-      if (!isOpen) setUnread((prev) => prev + 1);
-
-    } catch (err) {
+      const reply = res.data?.data?.reply || 'Sorry, I could not generate a reply.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+      if (!isOpen) {
+        setUnread((u) => u + 1);
+      }
+    } catch {
       setMessages((prev) => [
         ...prev,
-        {
-          role:    'assistant',
-          content: err.response?.data?.message ||
-            'Sorry, I encountered an error. Please try again.',
-        },
+        { role: 'assistant', content: 'An error occurred. Please try again.' },
       ]);
     } finally {
       setLoading(false);
@@ -144,7 +147,7 @@ export default function ChatBot() {
     setMessages([
       {
         role:    'assistant',
-        content: "Hi! I'm your EventFi AI assistant. Ask me anything about your events, budgets, or expenses. 💼",
+        content: "Hi! I'm your Paisa Pulse AI assistant. Ask me anything about your events, budgets, or expenses.",
       },
     ]);
   };
@@ -165,13 +168,13 @@ export default function ChatBot() {
                           justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-cream/20
-                              flex items-center justify-center text-lg">
-                🤖
+                              flex items-center justify-center">
+                <BotIcon className="w-5 h-5 text-cream" />
               </div>
               <div>
                 <p className="text-cream text-sm font-bold
                                font-playfair">
-                  EventFi AI
+                  Paisa Pulse AI
                 </p>
                 <p className="text-cream/60 text-[10px]">
                   Powered by Groq
@@ -183,10 +186,10 @@ export default function ChatBot() {
                 onClick={clearChat}
                 className="text-cream/60 hover:text-cream
                            transition-colors text-xs px-2 py-1
-                           rounded-lg hover:bg-white/10"
+                           rounded-lg hover:bg-white/10 flex items-center justify-center"
                 title="Clear chat"
               >
-                🗑️
+                <TrashIcon />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
@@ -292,7 +295,7 @@ export default function ChatBot() {
                   strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <span className="text-2xl">🤖</span>
+          <BotIcon className="w-6 h-6 text-cream" />
         )}
 
         {/* Unread badge */}

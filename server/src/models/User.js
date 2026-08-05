@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema(
       enum:    ['Organizer', 'Approver', 'FinanceAdmin'],
       default: 'Organizer',
     },
+    profilePhoto: {
+      type:    String,
+    },
   },
   { timestamps: true }
 );
