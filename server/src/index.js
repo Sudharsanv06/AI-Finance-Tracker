@@ -100,7 +100,7 @@ app.use('/api/goals',   goalRoutes);
 app.use('/api/bills',   billRoutes)
 
 // ── Health Check ──────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/healthz', '/health'], (req, res) => {
   res.json({
     success:     true,
     message:     '🚀 Paisa Pulse API is running',
