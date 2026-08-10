@@ -60,24 +60,14 @@ class FirestoreQuery {
   async exec() {
     let queryRef = db.collection(this.collectionName);
 
+    const inMemoryFilters = [];
+
     // Apply basic filter mappings
     for (const [key, val] of Object.entries(this.filter)) {
       if (val && typeof val === 'object' && !Array.isArray(val)) {
-        // Handle comparison operators ($gte, $lte, $ne, $in)
+        // Handle comparison operators in memory to bypass index requirements
         for (const [op, opVal] of Object.entries(val)) {
-          if (op === '$gte') {
-            queryRef = queryRef.where(key, '>=', opVal);
-          } else if (op === '$lte') {
-            queryRef = queryRef.where(key, '<=', opVal);
-          } else if (op === '$gt') {
-            queryRef = queryRef.where(key, '>', opVal);
-          } else if (op === '$lt') {
-            queryRef = queryRef.where(key, '<', opVal);
-          } else if (op === '$ne') {
-            queryRef = queryRef.where(key, '!=', opVal);
-          } else if (op === '$in') {
-            queryRef = queryRef.where(key, 'in', opVal);
-          }
+          inMemoryFilters.push({ key, op, opVal });
         }
       } else {
         // Exact match
@@ -90,10 +80,34 @@ class FirestoreQuery {
     
     for (const doc of snapshot.docs) {
       const instance = new this.modelClass(doc.data(), doc.id);
-      if (this._populatePath) {
-        await instance.populate(this._populatePath, this._populateSelect);
+      
+      // Run in-memory filter matching
+      let matches = true;
+      for (const filter of inMemoryFilters) {
+        let fieldVal = instance[filter.key];
+        if (fieldVal instanceof Date) {
+          fieldVal = fieldVal.getTime();
+        }
+        let compareVal = filter.opVal;
+        if (compareVal instanceof Date) {
+          compareVal = compareVal.getTime();
+        }
+
+        const op = filter.op;
+        if (op === '$gte' && !(fieldVal >= compareVal)) matches = false;
+        else if (op === '$lte' && !(fieldVal <= compareVal)) matches = false;
+        else if (op === '$gt' && !(fieldVal > compareVal)) matches = false;
+        else if (op === '$lt' && !(fieldVal < compareVal)) matches = false;
+        else if (op === '$ne' && !(fieldVal != compareVal)) matches = false;
+        else if (op === '$in' && !(Array.isArray(compareVal) && compareVal.includes(fieldVal))) matches = false;
       }
-      list.push(instance);
+
+      if (matches) {
+        if (this._populatePath) {
+          await instance.populate(this._populatePath, this._populateSelect);
+        }
+        list.push(instance);
+      }
     }
 
     // Apply sorting in memory to avoid requiring Firestore composite indexes
@@ -166,23 +180,8 @@ export default class FirestoreModel {
   }
 
   static async countDocuments(filter = {}) {
-    let queryRef = db.collection(this.collectionName);
-    for (const [key, val] of Object.entries(filter)) {
-      if (val && typeof val === 'object' && !Array.isArray(val)) {
-        for (const [op, opVal] of Object.entries(val)) {
-          if (op === '$gte') queryRef = queryRef.where(key, '>=', opVal);
-          else if (op === '$lte') queryRef = queryRef.where(key, '<=', opVal);
-          else if (op === '$gt') queryRef = queryRef.where(key, '>', opVal);
-          else if (op === '$lt') queryRef = queryRef.where(key, '<', opVal);
-          else if (op === '$ne') queryRef = queryRef.where(key, '!=', opVal);
-          else if (op === '$in') queryRef = queryRef.where(key, 'in', opVal);
-        }
-      } else {
-        queryRef = queryRef.where(key, '==', val);
-      }
-    }
-    const snapshot = await queryRef.count().get();
-    return snapshot.data().count;
+    const list = await this.find(filter).exec();
+    return list.length;
   }
 
   static async findOne(filter = {}) {
