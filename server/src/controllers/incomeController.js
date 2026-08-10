@@ -116,7 +116,10 @@ export const updateIncome = async (req, res, next) => {
 
     const updated = await Income.findByIdAndUpdate(
       req.params.id, req.body, { new: true, runValidators: true }
-    ).populate('familyMember', 'name relation color');
+    );
+    if (updated) {
+      await updated.populate('familyMember', 'name relation color');
+    }
 
     res.json({
       success: true,

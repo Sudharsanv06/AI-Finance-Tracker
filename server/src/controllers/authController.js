@@ -75,7 +75,7 @@ export const login = async (req, res, next) => {
     // Find user with password
     const user = await User.findOne({
       email: email.toLowerCase(),
-    }).select('+password');
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -195,7 +195,7 @@ export const updatePassword = async (req, res, next) => {
     }
 
     // Get user with password
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await User.findById(req.user._id);
 
     // Verify current password
     const isMatch = await user.matchPassword(currentPassword);

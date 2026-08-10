@@ -124,7 +124,10 @@ export const updateEvent = async (req, res, next) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('createdBy', 'name email role');
+    );
+    if (updated) {
+      await updated.populate('createdBy', 'name email role');
+    }
 
     res.json({
       success: true,

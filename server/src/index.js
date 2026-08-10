@@ -5,7 +5,8 @@ import express       from 'express';
 import cors          from 'cors';
 import helmet        from 'helmet';
 import rateLimit     from 'express-rate-limit';
-import connectDB     from './config/db.js';
+import './config/firebase.js';
+
 import authRoutes    from './routes/authRoutes.js';
 import eventRoutes   from './routes/eventRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
@@ -22,8 +23,6 @@ import goalRoutes   from './routes/goalRoutes.js';
 import billRoutes   from './routes/billRoutes.js';
 
 import { protect }     from './middleware/authMiddleware.js';
-
-connectDB();
 
 const app  = express();
 const PORT = process.env.PORT || 5000;

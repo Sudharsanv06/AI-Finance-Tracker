@@ -46,7 +46,7 @@ export const chat = async (req, res, next) => {
         bills,
         investments,
         familyMembers,
-        expenseAgg,
+        allNonRejectedExpenses,
       ] = await Promise.all([
         Event.find({ createdBy: userId }).limit(10),
         Expense.find({ submittedBy: userId, approvalStatus: { $ne: 'Rejected' } })
@@ -58,26 +58,32 @@ export const chat = async (req, res, next) => {
         Bill.find({ userId }),
         Investment.find({ userId }),
         FamilyMember.find({ userId }),
-        Expense.aggregate([
-          { $match: { submittedBy: userId, approvalStatus: { $ne: 'Rejected' } } },
-          {
-            $facet: {
-              byCategory: [
-                { $group: { _id: '$category', total: { $sum: '$amount' } } },
-                { $sort: { total: -1 } },
-                { $limit: 8 },
-              ],
-              thisMonth: [
-                { $match: { date: { $gte: monthStart } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
-              ],
-              allTime: [
-                { $group: { _id: null, total: { $sum: '$amount' } } },
-              ],
-            },
-          },
-        ]),
+        Expense.find({ submittedBy: userId, approvalStatus: { $ne: 'Rejected' } }),
       ]);
+
+      // Calculate expense aggregation facets in memory
+      const categoriesMap = {};
+      allNonRejectedExpenses.forEach(e => {
+        const cat = e.category || 'Others';
+        categoriesMap[cat] = (categoriesMap[cat] || 0) + (e.amount || 0);
+      });
+      const byCategory = Object.entries(categoriesMap)
+        .map(([cat, total]) => ({ _id: cat, total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 8);
+
+      const thisMonthSpent = allNonRejectedExpenses
+        .filter(e => e.date && new Date(e.date) >= monthStart)
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+      const allTimeSpent = allNonRejectedExpenses
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+      const expenseAgg = [{
+        byCategory,
+        thisMonth: [{ total: thisMonthSpent }],
+        allTime: [{ total: allTimeSpent }]
+      }];
 
       // ── Calculations ──
       const totalBudget = events.reduce((s, e) => s + (e.totalBudget || 0), 0);
