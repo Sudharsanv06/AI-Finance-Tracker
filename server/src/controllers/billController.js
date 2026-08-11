@@ -6,6 +6,89 @@ export const getBills = async (req, res, next) => {
     const bills = await Bill.find({ userId: req.user._id })
       .sort({ dueDate: 1 });
 
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    for (let b of bills) {
+      // Calculate isPaid
+      b.isPaid = b.lastPaidMonth === currentMonth && b.lastPaidYear === currentYear;
+
+      // Calculate isDueThisMonth
+      let isDueThisMonth = false;
+      if (b.frequency === 'monthly') {
+        isDueThisMonth = true;
+      } else if (b.frequency === 'quarterly') {
+        isDueThisMonth = (currentMonth - (b.dueMonth || 1) + 12) % 3 === 0;
+      } else if (b.frequency === 'yearly') {
+        isDueThisMonth = currentMonth === (b.dueMonth || 1);
+      }
+      b.isDueThisMonth = isDueThisMonth;
+
+      // Calculate daysUntilDue
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(currentYear, currentMonth - 1, b.dueDate || 1);
+      const diffTime = due.getTime() - today.getTime();
+      b.daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Calculate upcoming dates
+      const upcomingDates = [];
+      const baseMonth = b.dueMonth || 1;
+      const day = b.dueDate || 1;
+
+      if (b.frequency === 'monthly') {
+        let targetDate = new Date(currentYear, currentMonth - 1, day);
+        targetDate.setHours(0, 0, 0, 0);
+        if (targetDate < today) {
+          targetDate.setMonth(targetDate.getMonth() + 1);
+        }
+        const diff = targetDate.getTime() - today.getTime();
+        upcomingDates.push({
+          date: targetDate.toISOString().split('T')[0],
+          formattedDate: targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+          daysLeft: Math.ceil(diff / (1000 * 60 * 60 * 24))
+        });
+        b.upcomingDates = upcomingDates;
+      } else if (b.frequency === 'quarterly') {
+        for (let i = 0; i < 4; i++) {
+          const mOffset = baseMonth + i * 3;
+          let targetMonth = mOffset;
+          let targetYear = currentYear;
+          if (targetMonth > 12) {
+            targetMonth = targetMonth - 12;
+            targetYear = currentYear + 1;
+          }
+          const targetDate = new Date(targetYear, targetMonth - 1, day);
+          targetDate.setHours(0, 0, 0, 0);
+          if (targetDate < today) {
+            targetDate.setFullYear(targetDate.getFullYear() + 1);
+          }
+          const diff = targetDate.getTime() - today.getTime();
+          upcomingDates.push({
+            date: targetDate.toISOString().split('T')[0],
+            formattedDate: targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            daysLeft: Math.ceil(diff / (1000 * 60 * 60 * 24))
+          });
+        }
+        upcomingDates.sort((x, y) => x.daysLeft - y.daysLeft);
+        b.upcomingDates = upcomingDates.slice(0, 3);
+      } else if (b.frequency === 'yearly') {
+        let targetDate = new Date(currentYear, baseMonth - 1, day);
+        targetDate.setHours(0, 0, 0, 0);
+        if (targetDate < today) {
+          targetDate.setFullYear(targetDate.getFullYear() + 1);
+        }
+        const diff = targetDate.getTime() - today.getTime();
+        upcomingDates.push({
+          date: targetDate.toISOString().split('T')[0],
+          formattedDate: targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+          daysLeft: Math.ceil(diff / (1000 * 60 * 60 * 24))
+        });
+        b.upcomingDates = upcomingDates;
+      }
+    }
+
     if (!bills || bills.length === 0) {
       return res.status(200).json({
         success: true,
@@ -18,14 +101,13 @@ export const getBills = async (req, res, next) => {
       });
     }
 
-    const now          = new Date();
     const totalMonthly = bills
-      .filter((b) => b.frequency === 'monthly')
+      .filter((b) => b.isDueThisMonth)
       .reduce((s, b) => s + b.amount, 0);
 
-    const unpaidThisMonth = bills.filter((b) => b.isDueThisMonth).length;
+    const unpaidThisMonth = bills.filter((b) => b.isDueThisMonth && !b.isPaid).length;
     const upcomingIn7Days = bills.filter(
-      (b) => b.daysUntilDue >= 0 && b.daysUntilDue <= 7 && b.isDueThisMonth
+      (b) => b.daysUntilDue >= 0 && b.daysUntilDue <= 7 && b.isDueThisMonth && !b.isPaid
     ).length;
 
     res.json({

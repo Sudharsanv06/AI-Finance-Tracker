@@ -37,9 +37,10 @@ export const getIncome = async (req, res, next) => {
     // Monthly income (current month)
     const now         = new Date();
     const monthStart  = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd    = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     const monthIncome = await Income.find({
       userId: req.user._id,
-      date:   { $gte: monthStart },
+      date:   { $gte: monthStart, $lte: monthEnd },
     });
     const monthlyTotal = monthIncome.reduce((s, i) => s + (i.amount || 0), 0);
 
@@ -159,18 +160,20 @@ export const getIncomeSummary = async (req, res, next) => {
   try {
     const now        = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     const yearStart  = new Date(now.getFullYear(), 0, 1);
+    const yearEnd    = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
 
     // Monthly income
     const monthlyIncome = await Income.find({
       userId: req.user._id,
-      date:   { $gte: monthStart },
+      date:   { $gte: monthStart, $lte: monthEnd },
     });
 
     // Yearly income
     const yearlyIncome = await Income.find({
       userId: req.user._id,
-      date:   { $gte: yearStart },
+      date:   { $gte: yearStart, $lte: yearEnd },
     });
 
     // By source breakdown

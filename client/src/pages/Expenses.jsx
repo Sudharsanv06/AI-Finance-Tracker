@@ -26,9 +26,15 @@ export default function Expenses() {
   const [search,       setSearch]       = useState('');
   const [currentPage,  setCurrentPage]  = useState(1);
   const [pagination,   setPagination]   = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   const userRole  = user?.role || 'Organizer';
   const canSubmit = true;
+
+  const handleEdit = (expense) => {
+    setEditingExpense(expense);
+    setShowForm(true);
+  };
 
   const fetchExpenses = useCallback(async (page = 1) => {
     Promise.resolve().then(() => {
@@ -69,10 +75,13 @@ export default function Expenses() {
   });
 
   // Stats (based on current page expenses only)
-  const totalAmount   = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalAmount   = expenses
+    .filter((e) => e.approvalStatus !== 'Rejected')
+    .reduce((s, e) => s + (e.amount || 0), 0);
   const pendingCount  = expenses.filter((e) => e.approvalStatus === 'Pending').length;
   const approvedCount = expenses.filter((e) => e.approvalStatus === 'Approved').length;
   const paidCount     = expenses.filter((e) => e.approvalStatus === 'Paid').length;
+  const rejectedCount = expenses.filter((e) => e.approvalStatus === 'Rejected').length;
 
   const handlePageChange = (page) => {
     fetchExpenses(page);
@@ -132,7 +141,7 @@ export default function Expenses() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
             {
               label: 'Total Amount',
@@ -171,11 +180,22 @@ export default function Expenses() {
                 </svg>
               )
             },
+            {
+              label: 'Rejected',
+              value: rejectedCount,
+              icon: (
+                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              ),
+              highlight: rejectedCount > 0,
+              isRed: true
+            },
           ].map((s) => (
             <div
               key={s.label}
               className={`card p-4 flex items-center gap-3 ${
-                s.highlight ? 'border-amber-200 bg-amber-50' : ''
+                s.highlight ? (s.isRed ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50') : ''
               }`}
             >
               <span className="text-2xl">{s.icon}</span>
@@ -183,7 +203,7 @@ export default function Expenses() {
                 <p className="text-xs text-teal-400 uppercase
                               tracking-wider">{s.label}</p>
                 <p className={`text-lg font-bold font-playfair ${
-                  s.highlight ? 'text-amber-600' : 'text-teal'
+                  s.highlight ? (s.isRed ? 'text-red-600' : 'text-amber-600') : 'text-teal'
                 }`}>
                   {s.value}
                 </p>
@@ -267,6 +287,7 @@ export default function Expenses() {
               expenses={filtered}
               userRole={userRole}
               onRefresh={() => fetchExpenses(currentPage)}
+              onEdit={handleEdit}
             />
             <Pagination
               pagination={pagination}
@@ -280,8 +301,9 @@ export default function Expenses() {
       {showForm && (
         <ExpenseForm
           defaultEventId={defaultEventId}
-          onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); fetchExpenses(currentPage); }}
+          expense={editingExpense}
+          onClose={() => { setShowForm(false); setEditingExpense(null); }}
+          onSaved={() => { setShowForm(false); setEditingExpense(null); fetchExpenses(currentPage); }}
         />
       )}
     </div>

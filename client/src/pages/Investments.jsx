@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import investmentService from '../services/investmentService';
 import ConfirmModal      from '../components/ConfirmModal';
 import Pagination        from '../components/Pagination';
-import BudgetRing        from '../components/BudgetRing';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import {
   PieChart, Pie, Cell, Tooltip,
@@ -376,13 +375,13 @@ function InvestmentCard({ investment, onEdit, onDelete }) {
         <span className={`badge ${s.cls} shrink-0`}>{s.label}</span>
       </div>
 
-      {/* Returns ring + stats */}
+      {/* Returns trend icon + stats */}
       <div className="flex items-center gap-4">
-        <BudgetRing
-          spent={investment.currentValue || 0}
-          total={(investment.currentValue || 0) + Math.abs(returns) + 1}
-          size={72}
-        />
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 ${
+          isProfit ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+        }`}>
+          {isProfit ? '📈' : '📉'}
+        </div>
         <div className="flex-1 space-y-2">
           <div className="flex justify-between text-xs">
             <span className="text-teal-400">Invested</span>

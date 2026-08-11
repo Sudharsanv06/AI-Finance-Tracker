@@ -53,6 +53,22 @@ const CATEGORY_ICONS = {
   ),
 };
 
+const statusConfig = {
+  active: {
+    label: 'Active',
+    cls: 'bg-blue-50 text-blue-600 border border-blue-100'
+  },
+  completed: {
+    label: 'Completed',
+    cls: 'bg-green-50 text-green-700 border border-green-100'
+  },
+  defaulted: {
+    label: 'Defaulted',
+    cls: 'bg-red-50 text-red-600 border border-red-100'
+  }
+};
+
+
 
 const getCategoryColor = (cat) => {
   const map = {
@@ -445,6 +461,11 @@ function PaymentModal({ loan, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
+  const totalPayable = (loan?.principal || 0) +
+    ((loan?.principal || 0) * ((loan?.interestRate || 0) / 100) * ((loan?.tenureMonths || 12) / 12));
+  const remainingPayable = Math.max(0, totalPayable - (loan?.totalPaid || 0));
+  const isTaken = loan?.type === 'taken';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0)
@@ -470,7 +491,7 @@ function PaymentModal({ loan, onClose, onSaved }) {
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-teal font-playfair">
-            Record Payment
+            {isTaken ? 'Record EMI Payment' : 'Record Payment Received'}
           </h2>
           <button onClick={onClose}
             className="w-8 h-8 rounded-lg bg-teal-50 hover:bg-teal-100 flex items-center justify-center text-teal">
@@ -481,8 +502,9 @@ function PaymentModal({ loan, onClose, onSaved }) {
         <div className="bg-teal-50 rounded-xl p-3 mb-4 text-xs">
           <p className="text-teal-400">Loan: <strong className="text-teal">{loan?.title}</strong></p>
           <p className="text-teal-400 mt-1">
-            Remaining: <strong className="text-teal">
-              {formatCurrency(loan?.remainingAmount || 0)}
+            {isTaken ? 'Remaining Payable: ' : 'Remaining to Receive: '}
+            <strong className="text-teal">
+              {formatCurrency(remainingPayable)}
             </strong>
           </p>
         </div>
@@ -498,14 +520,14 @@ function PaymentModal({ loan, onClose, onSaved }) {
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div>
-            <label className="label">Payment Amount (₹) *</label>
+            <label className="label">{isTaken ? 'Payment Amount (₹) *' : 'Amount Received (₹) *'}</label>
             <input type="number" value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder={loan?.emiAmount || '0'}
               min="1" className="input" required />
           </div>
           <div>
-            <label className="label">Payment Date</label>
+            <label className="label">{isTaken ? 'Payment Date' : 'Receipt Date'}</label>
             <input type="date" value={date}
               onChange={(e) => setDate(e.target.value)}
               className="input" />
@@ -514,7 +536,7 @@ function PaymentModal({ loan, onClose, onSaved }) {
             <label className="label">Note (optional)</label>
             <input type="text" value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. EMI for June"
+              placeholder={isTaken ? 'e.g. EMI for June' : 'e.g. Received from borrower'}
               className="input" />
           </div>
           <div className="flex gap-3">
@@ -522,7 +544,7 @@ function PaymentModal({ loan, onClose, onSaved }) {
               Cancel
             </button>
             <button type="submit" disabled={loading} className="flex-1 btn-primary">
-              {loading ? <span className="spinner" /> : '✓ Record'}
+              {loading ? <span className="spinner" /> : isTaken ? '✓ Pay / Record' : '✓ Record Receipt'}
             </button>
           </div>
         </form>
@@ -541,12 +563,8 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
   const remaining     = Math.max(0, totalPayable - (loan.totalPaid || 0));
   const isTaken       = loan.type === 'taken';
 
-  const statusConfig = {
-    active:    { label: 'Active',    cls: 'badge-active'   },
-    completed: { label: 'Completed', cls: 'badge-approved' },
-    defaulted: { label: 'Defaulted', cls: 'badge-rejected' },
-  };
-  const s = statusConfig[loan.status] || statusConfig.active;
+  const loanStatus    = loan.status || 'active';
+  const s = statusConfig[loanStatus] || statusConfig.active;
 
   return (
     <div className="card card-hover p-5 flex flex-col gap-4">
@@ -639,17 +657,47 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
         <div className="text-right">
           <p className="text-teal-400">Payments</p>
           <p className="font-bold text-teal">
-            {loan.paidEMIs || 0}/{loan.tenureMonths}
+            {loan.payments?.length || 0}/{loan.tenureMonths}
           </p>
         </div>
       </div>
 
+      {/* Payment History */}
+      {loan.payments && loan.payments.length > 0 && (
+        <div className="pt-3 border-t border-teal-50">
+          <p className="text-[10px] font-bold text-teal-400 uppercase tracking-wider mb-2">
+            Payment History ({loan.payments.length})
+          </p>
+          <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+            {loan.payments.map((p, idx) => (
+              <div key={idx} className="flex items-center justify-between text-xs bg-teal-50/50 rounded-lg p-2 border border-teal-50">
+                <div className="min-w-0">
+                  <p className="font-semibold text-teal truncate">
+                    {p.note || (isTaken ? 'EMI Payment' : 'Payment Received')}
+                  </p>
+                  <p className="text-[10px] text-teal-400">
+                    {new Date(p.date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <span className={`font-bold shrink-0 ${isTaken ? 'text-red-600' : 'text-green-700'}`}>
+                  {isTaken ? '-' : '+'}{formatCurrency(p.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2 pt-2 border-t border-teal-50">
-        {loan.status === 'active' && (
+        {loanStatus === 'active' && (
           <button onClick={() => onPayment(loan)}
             className="flex-1 btn-primary text-xs py-2">
-            Pay EMI
+            {isTaken ? 'Pay EMI' : 'Receive Payment'}
           </button>
         )}
         <button onClick={() => onEdit(loan)}

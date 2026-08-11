@@ -86,6 +86,14 @@ function GoalModal({ goal, onClose, onSaved }) {
         )
       : null;
 
+  useEffect(() => {
+    if (monthsToGoal && monthsToGoal > 0) {
+      const date = new Date();
+      date.setMonth(date.getMonth() + monthsToGoal);
+      setDeadline(date.toISOString().split('T')[0]);
+    }
+  }, [monthsToGoal]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -234,7 +242,9 @@ function GoalModal({ goal, onClose, onSaved }) {
 
 // ── Contribute Modal ──────────────────────────────────────────────────────────
 function ContributeModal({ goal, onClose, onSaved }) {
-  const [amount,  setAmount]  = useState(goal?.monthlyContribution || '');
+  const [amount,  setAmount]  = useState('');
+  const [date,    setDate]    = useState(new Date().toISOString().split('T')[0]);
+  const [note,    setNote]    = useState('');
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
@@ -245,7 +255,11 @@ function ContributeModal({ goal, onClose, onSaved }) {
 
     setLoading(true);
     try {
-      const res = await goalService.addContribution(goal._id, parseFloat(amount));
+      const res = await goalService.addContribution(goal._id, {
+        amount: parseFloat(amount),
+        date,
+        note: note.trim() || 'Contribution added',
+      });
       onSaved(res.message);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add');
@@ -295,6 +309,18 @@ function ContributeModal({ goal, onClose, onSaved }) {
               onChange={(e) => setAmount(e.target.value)}
               placeholder="5000" min="1" className="input" required />
           </div>
+          <div>
+            <label className="label">Date</label>
+            <input type="date" value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input" />
+          </div>
+          <div>
+            <label className="label">Note (optional)</label>
+            <input type="text" value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. Added from August savings" className="input" />
+          </div>
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="flex-1 btn-secondary">
               Cancel
@@ -310,9 +336,29 @@ function ContributeModal({ goal, onClose, onSaved }) {
 }
 
 // ── Goal Card ─────────────────────────────────────────────────────────────────
-function GoalCard({ goal, onEdit, onDelete, onContribute }) {
-  const pct       = goal.progressPercent || 0;
-  const isComplete = goal.status === 'completed';
+function GoalCard({ goal, onEdit, onDelete, onContribute, onUpdateStatus }) {
+  const pct = goal.targetAmount
+    ? Math.min(Math.round(((goal.currentAmount || 0) / goal.targetAmount) * 100), 100)
+    : 0;
+
+  const monthsToGoal =
+    goal.targetAmount && goal.monthlyContribution && parseFloat(goal.monthlyContribution) > 0
+      ? Math.ceil(
+          (parseFloat(goal.targetAmount) - parseFloat(goal.currentAmount || 0)) /
+          parseFloat(goal.monthlyContribution)
+        )
+      : null;
+
+  const status = goal.status || 'active';
+  const isComplete = status === 'completed';
+
+  const statusConfig = {
+    active:    { label: 'Active',    cls: 'bg-blue-50 text-blue-600 border border-blue-100' },
+    completed: { label: 'Completed', cls: 'bg-green-50 text-green-700 border border-green-100' },
+    paused:    { label: 'Paused',    cls: 'bg-amber-50 text-amber-600 border border-amber-100' },
+    cancelled: { label: 'Cancelled', cls: 'bg-red-50 text-red-600 border border-red-100' },
+  };
+  const s = statusConfig[status] || statusConfig.active;
 
   return (
     <div className={`card card-hover p-5 flex flex-col gap-4 ${
@@ -331,11 +377,16 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }) {
             <h3 className="font-bold text-teal text-base font-playfair leading-snug">
               {goal.title}
             </h3>
-            {isComplete && (
-              <svg className="w-5 h-5 text-teal shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${s.cls}`}>
+                {s.label}
+              </span>
+              {isComplete && (
+                <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
           </div>
           <p className="text-xs text-teal-400 mt-0.5">{goal.category}</p>
         </div>
@@ -381,11 +432,11 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }) {
             </p>
           </div>
         )}
-        {goal.monthsToGoal !== null && goal.monthsToGoal > 0 && (
+        {monthsToGoal !== null && monthsToGoal > 0 && (
           <div className="bg-amber-50 rounded-xl p-3 text-center">
             <p className="text-amber-600 mb-0.5">Months Left</p>
             <p className="font-bold text-amber-700 text-sm">
-              {goal.monthsToGoal}
+              {monthsToGoal}
             </p>
           </div>
         )}
@@ -399,20 +450,77 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }) {
         )}
       </div>
 
+      {/* Contributions History */}
+      {goal.contributions && goal.contributions.length > 0 && (
+        <div className="border-t border-teal-50 pt-3">
+          <p className="text-[10px] text-teal-400 font-bold uppercase tracking-wider mb-2">
+            Contribution History
+          </p>
+          <div className="max-h-24 overflow-y-auto space-y-1.5 pr-1">
+            {goal.contributions.map((c, i) => (
+              <div key={i} className="flex justify-between items-center bg-teal-50/40 rounded-lg p-2 text-[11px]">
+                <div className="min-w-0">
+                  <p className="text-teal font-semibold leading-tight">
+                    {c.note || 'Contribution added'}
+                  </p>
+                  <p className="text-teal-400 text-[10px] mt-0.5">
+                    {new Date(c.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <span className="font-bold text-teal shrink-0 ml-2">
+                  +{formatCurrency(c.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="flex gap-2 pt-2 border-t border-teal-50">
-        {!isComplete && (
+      <div className="flex flex-wrap gap-2 pt-3 border-t border-teal-50">
+        {!isComplete && status === 'active' && (
           <button onClick={() => onContribute(goal)}
-            className="flex-1 btn-primary text-xs py-2">
+            className="flex-1 btn-primary text-xs py-2 whitespace-nowrap">
             + Add Money
           </button>
         )}
+        {status === 'active' && (
+          <>
+            <button onClick={() => onUpdateStatus(goal._id, 'paused')}
+              className="px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 text-xs font-semibold transition-all">
+              Pause
+            </button>
+            <button onClick={() => onUpdateStatus(goal._id, 'cancelled')}
+              className="px-2.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all">
+              Cancel
+            </button>
+          </>
+        )}
+        {status === 'paused' && (
+          <>
+            <button onClick={() => onUpdateStatus(goal._id, 'active')}
+              className="px-2.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-all">
+              Activate
+            </button>
+            <button onClick={() => onUpdateStatus(goal._id, 'cancelled')}
+              className="px-2.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all">
+              Cancel
+            </button>
+          </>
+        )}
+        {status === 'cancelled' && (
+          <button onClick={() => onUpdateStatus(goal._id, 'active')}
+            className="flex-1 btn-primary text-xs py-2">
+            Restore / Activate
+          </button>
+        )}
+
         <button onClick={() => onEdit(goal)}
-          className="flex-1 btn-secondary text-xs py-2">
+          className="btn-secondary text-xs px-3 py-2">
           Edit
         </button>
         <button onClick={() => onDelete(goal._id)}
-          className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all">
+          className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all flex items-center justify-center">
           <svg className="w-4 h-4 text-red-500 hover:text-red-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -483,6 +591,15 @@ export default function Goals() {
     setSuccessMsg(msg);
     fetchGoals();
     setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handleUpdateStatus = async (goalId, newStatus) => {
+    try {
+      await goalService.updateGoal(goalId, { status: newStatus });
+      fetchGoals();
+    } catch {
+      setError('Failed to update status');
+    }
   };
 
   return (
@@ -572,7 +689,7 @@ export default function Goals() {
 
         {/* Filters */}
         <div className="flex gap-1 p-1 bg-white border border-teal-100 rounded-xl w-fit">
-          {['All','active','completed','paused'].map((s) => (
+          {['All','active','completed','paused','cancelled'].map((s) => (
             <button key={s} onClick={() => setFilterStatus(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
                 filterStatus === s ? 'bg-teal text-cream' : 'text-teal-500 hover:text-teal'
@@ -625,6 +742,7 @@ export default function Goals() {
                 onEdit={(g) => { setEditingGoal(g); setShowModal(true); }}
                 onDelete={setDeleteTarget}
                 onContribute={(g) => { setContributeGoal(g); setShowContribute(true); }}
+                onUpdateStatus={handleUpdateStatus}
               />
             ))}
           </div>

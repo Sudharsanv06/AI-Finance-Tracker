@@ -87,10 +87,15 @@ class FirestoreQuery {
         let fieldVal = instance[filter.key];
         if (fieldVal instanceof Date) {
           fieldVal = fieldVal.getTime();
+        } else if (typeof fieldVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(fieldVal) && !isNaN(Date.parse(fieldVal))) {
+          fieldVal = new Date(fieldVal).getTime();
         }
+
         let compareVal = filter.opVal;
         if (compareVal instanceof Date) {
           compareVal = compareVal.getTime();
+        } else if (typeof compareVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(compareVal) && !isNaN(Date.parse(compareVal))) {
+          compareVal = new Date(compareVal).getTime();
         }
 
         const op = filter.op;
@@ -295,6 +300,16 @@ export default class FirestoreModel {
       return true;
     }
     return false;
+  }
+
+  toJSON() {
+    const obj = {};
+    for (const [k, v] of Object.entries(this)) {
+      if (typeof v !== 'function') {
+        obj[k] = v;
+      }
+    }
+    return obj;
   }
 
   // Populate references dynamically

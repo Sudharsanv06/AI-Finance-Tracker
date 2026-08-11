@@ -4,7 +4,7 @@ import incomeService from '../services/incomeService';
 import ConfirmModal  from '../components/ConfirmModal';
 import { formatCurrency } from '../utils/helpers';
 
-const RELATIONS = ['Self','Spouse','Parent','Child','Sibling','Other'];
+const RELATIONS = ['Spouse','Parent','Child','Sibling','Other'];
 
 const RELATION_ICONS = {
   Self: (
@@ -54,6 +54,11 @@ function MemberModal({ member, onClose, onSaved }) {
   const [relation,      setRelation]      = useState(member?.relation      || 'Other');
   const [monthlyIncome, setMonthlyIncome] = useState(member?.monthlyIncome || '');
   const [color,         setColor]         = useState(member?.color         || '#004643');
+  const [date,          setDate]          = useState(
+    member?.date 
+      ? new Date(member.date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
+  );
   const [loading,       setLoading]       = useState(false);
   const [error,         setError]         = useState('');
 
@@ -68,6 +73,7 @@ function MemberModal({ member, onClose, onSaved }) {
         name: name.trim(), relation,
         monthlyIncome: parseFloat(monthlyIncome) || 0,
         color,
+        date,
       };
       isEdit
         ? await familyService.updateMember(member._id, payload)
@@ -110,28 +116,38 @@ function MemberModal({ member, onClose, onSaved }) {
           </div>
 
           {/* Relation */}
-          <div>
-            <label className="label">Relation</label>
-            <div className="grid grid-cols-3 gap-2">
-              {RELATIONS.map((r) => (
-                <button key={r} type="button" onClick={() => setRelation(r)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 text-center transition-all ${
-                    relation === r
-                      ? 'border-teal bg-teal-50 text-teal'
-                      : 'border-teal-100 text-teal-400 hover:border-teal-200'
-                  }`}>
-                  <span className="text-xl">{RELATION_ICONS[r]}</span>
-                  <span className="text-[11px] font-semibold">{r}</span>
-                </button>
-              ))}
+          {relation !== 'Self' && (
+            <div>
+              <label className="label">Relation</label>
+              <div className="grid grid-cols-3 gap-2">
+                {RELATIONS.map((r) => (
+                  <button key={r} type="button" onClick={() => setRelation(r)}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 text-center transition-all ${
+                      relation === r
+                        ? 'border-teal bg-teal-50 text-teal'
+                        : 'border-teal-100 text-teal-400 hover:border-teal-200'
+                    }`}>
+                    <span className="text-xl">{RELATION_ICONS[r]}</span>
+                    <span className="text-[11px] font-semibold">{r}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="label">Monthly Income (₹)</label>
             <input type="number" value={monthlyIncome}
               onChange={(e) => setMonthlyIncome(e.target.value)}
               placeholder="50000" min="0" className="input" />
+          </div>
+
+          {/* Record Date */}
+          <div>
+            <label className="label">Start / Record Date</label>
+            <input type="date" value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input" />
           </div>
 
           {/* Color picker */}
@@ -209,10 +225,12 @@ function MemberCard({ member, onEdit, onDelete }) {
           className="flex-1 btn-secondary text-xs py-2">
           Edit
         </button>
-        <button onClick={() => onDelete(member._id)}
-          className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all">
-          Delete
-        </button>
+        {member.relation !== 'Self' && (
+          <button onClick={() => onDelete(member._id)}
+            className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-all">
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );

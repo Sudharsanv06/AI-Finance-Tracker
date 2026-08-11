@@ -71,16 +71,21 @@ export const getLoanSummary = async (req, res, next) => {
     const totalPaidBack  = taken.reduce((s, l) => s + l.totalPaid,   0);
     const totalRecovered = given.reduce((s, l) => s + l.totalPaid,   0);
 
-    const totalRemainingTaken = taken.reduce(
-      (s, l) => s + l.remainingAmount, 0
-    );
-    const totalRemainingGiven = given.reduce(
-      (s, l) => s + l.remainingAmount, 0
-    );
+    const totalRemainingTaken = taken.reduce((s, l) => {
+      const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
+      const remaining = Math.max(0, totalPayable - (l.totalPaid || 0));
+      return s + remaining;
+    }, 0);
+
+    const totalRemainingGiven = given.reduce((s, l) => {
+      const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
+      const remaining = Math.max(0, totalPayable - (l.totalPaid || 0));
+      return s + remaining;
+    }, 0);
 
     // Monthly EMI obligation
     const monthlyEMI = taken
-      .filter((l) => l.status === 'active')
+      .filter((l) => (l.status || 'active') === 'active')
       .reduce((s, l) => s + (l.emiAmount || 0), 0);
 
     res.json({
@@ -97,7 +102,7 @@ export const getLoanSummary = async (req, res, next) => {
           total:     all.length,
           taken:     taken.length,
           given:     given.length,
-          active:    all.filter((l) => l.status === 'active').length,
+          active:    all.filter((l) => (l.status || 'active') === 'active').length,
           completed: all.filter((l) => l.status === 'completed').length,
         },
       },
@@ -146,6 +151,9 @@ export const createLoan = async (req, res, next) => {
       endDate,
       notes,
       userId: req.user._id,
+      status:        'active',
+      totalPaid:     0,
+      payments:      [],
     });
 
     res.status(201).json({

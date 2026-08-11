@@ -7,6 +7,7 @@ import Goal from '../models/Goal.js';
 import Bill from '../models/Bill.js';
 import Investment from '../models/Investment.js';
 import FamilyMember from '../models/FamilyMember.js';
+import Budget from '../models/Budget.js';
 
 const getGroq = () => {
   if (!process.env.GROQ_API_KEY) {
@@ -47,6 +48,7 @@ export const chat = async (req, res, next) => {
         investments,
         familyMembers,
         allNonRejectedExpenses,
+        budgets,
       ] = await Promise.all([
         Event.find({ createdBy: userId }).limit(10),
         Expense.find({ submittedBy: userId, approvalStatus: { $ne: 'Rejected' } })
@@ -59,6 +61,7 @@ export const chat = async (req, res, next) => {
         Investment.find({ userId }),
         FamilyMember.find({ userId }),
         Expense.find({ submittedBy: userId, approvalStatus: { $ne: 'Rejected' } }),
+        Budget.find({ userId, month: now.getMonth() + 1, year: now.getFullYear() }),
       ]);
 
       // Calculate expense aggregation facets in memory
@@ -96,10 +99,54 @@ export const chat = async (req, res, next) => {
         .filter(i => new Date(i.date) >= monthStart)
         .reduce((s, i) => s + (i.amount || 0), 0);
 
+      // Category Budgets Calculations
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+      const budgetDetails = budgets.map(b => {
+        const spentSum = allNonRejectedExpenses
+          .filter(e => {
+            if (!e.date || e.category !== b.category) return false;
+            const d = new Date(e.date);
+            return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+          })
+          .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+        const utilization = b.monthlyLimit > 0 ? Math.round((spentSum / b.monthlyLimit) * 100) : 0;
+        const remaining = Math.max(0, b.monthlyLimit - spentSum);
+
+        return {
+          category: b.category,
+          limit: b.monthlyLimit,
+          spent: spentSum,
+          remaining,
+          utilization,
+          isOver: spentSum > b.monthlyLimit
+        };
+      });
+
+      const totalBudgetLimit = budgets.reduce((s, b) => s + (b.monthlyLimit || 0), 0);
+      const totalBudgetSpent = budgetDetails.reduce((s, b) => s + b.spent, 0);
+
+      // Loans Calculations
       const takenLoans = loans.filter(l => l.type === 'taken');
-      const totalLoanDebt = takenLoans.reduce((s, l) => s + (l.remainingAmount || 0), 0);
+      const givenLoans = loans.filter(l => l.type === 'given');
+
+      const totalLoanDebt = takenLoans.reduce((s, l) => {
+        const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
+        return s + Math.max(0, totalPayable - (l.totalPaid || 0));
+      }, 0);
+
+      const totalLentRecoverable = givenLoans.reduce((s, l) => {
+        const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
+        return s + Math.max(0, totalPayable - (l.totalPaid || 0));
+      }, 0);
+
       const monthlyEMI = takenLoans
-        .filter(l => l.status === 'active')
+        .filter(l => (l.status || 'active') === 'active')
+        .reduce((s, l) => s + (l.emiAmount || 0), 0);
+
+      const monthlyEMIReceivable = givenLoans
+        .filter(l => (l.status || 'active') === 'active')
         .reduce((s, l) => s + (l.emiAmount || 0), 0);
 
       const totalInvested = investments.reduce((s, i) => s + (i.investedAmount || 0), 0);
@@ -121,7 +168,7 @@ export const chat = async (req, res, next) => {
       const monthlyExpenseTotal = expenseAgg[0]?.thisMonth?.[0]?.total || 0;
       const allTimeExpenseTotal = expenseAgg[0]?.allTime?.[0]?.total || 0;
 
-      const netWorth = portfolioValue - totalLoanDebt;
+      const netWorth = portfolioValue + totalLentRecoverable - totalLoanDebt;
       const totalFamilyMonthlyIncome = familyMembers.reduce((s, m) => s + (m.monthlyIncome || 0), 0);
       const savingsRate = monthlyIncome > 0
         ? Math.round(
@@ -180,22 +227,39 @@ PERSONAL EXPENSES
 - Pending approvals: ${pending}
 ${pendingExpenses ? `- Pending items:\n  - ${pendingExpenses}` : ''}
 
-EVENTS & EVENT BUDGETS
+CATEGORY BUDGETS (Standard Category Limits for the current month)
+- Total category limit: ₹${totalBudgetLimit.toLocaleString('en-IN')}
+- Total category spent: ₹${totalBudgetSpent.toLocaleString('en-IN')}
+- Category Budgets: ${budgetDetails.map(b => 
+    `"${b.category}" (Spent: ₹${b.spent.toLocaleString('en-IN')}/Limit: ₹${b.limit.toLocaleString('en-IN')}, ${b.utilization}% used, ₹${b.remaining.toLocaleString('en-IN')} remaining${b.isOver ? ' - OVER BUDGET!' : ''})`
+  ).join(', ') || 'None'}
+
+EVENTS & EVENT BUDGETS (For special events/festivals)
 - Total events: ${events.length} (${overBudget} over budget)
-- Total budget: ₹${totalBudget.toLocaleString('en-IN')}
-- Total spent: ₹${totalSpent.toLocaleString('en-IN')}
-- Budget used: ${totalBudget ? Math.round((totalSpent/totalBudget)*100) : 0}%
+- Total event budget: ₹${totalBudget.toLocaleString('en-IN')}
+- Total event spent: ₹${totalSpent.toLocaleString('en-IN')}
+- Event budget used: ${totalBudget ? Math.round((totalSpent/totalBudget)*100) : 0}%
 - Events: ${events.slice(0,5).map(e =>
     `"${e.name}" (₹${e.spentAmount||0}/₹${e.totalBudget||0}, ${Math.round((e.spentAmount/e.totalBudget)*100)||0}% used)`
   ).join(', ') || 'None'}
 
 LOANS
-- Total debt: ₹${totalLoanDebt.toLocaleString('en-IN')}
-- Monthly EMI: ₹${monthlyEMI.toLocaleString('en-IN')}
-- Active loans: ${takenLoans.filter(l=>l.status==='active').length}
-- Details: ${takenLoans.slice(0,5).map(l =>
-    `"${l.title}" ₹${(l.remainingAmount||0).toLocaleString('en-IN')} remaining, EMI ₹${l.emiAmount||0}`
-  ).join(', ') || 'None'}
+- Total Debt (Still Owe taken loans): ₹${totalLoanDebt.toLocaleString('en-IN')}
+- Total Lent (Yet to Recover given loans): ₹${totalLentRecoverable.toLocaleString('en-IN')}
+- Monthly EMI to pay: ₹${monthlyEMI.toLocaleString('en-IN')}
+- Monthly EMI to receive: ₹${monthlyEMIReceivable.toLocaleString('en-IN')}
+- Active Taken Loans: ${takenLoans.filter(l => (l.status || 'active') === 'active').length}
+- Active Given Loans: ${givenLoans.filter(l => (l.status || 'active') === 'active').length}
+- Taken Loans Details: ${takenLoans.slice(0,5).map(l => {
+    const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
+    const remaining = Math.max(0, totalPayable - (l.totalPaid || 0));
+    return `"${l.title}" ₹${remaining.toLocaleString('en-IN')} remaining, EMI: ₹${l.emiAmount||0} (${l.status || 'active'})`;
+  }).join(', ') || 'None'}
+- Given Loans Details: ${givenLoans.slice(0,5).map(l => {
+    const totalPayable = l.principal + (l.principal * (l.interestRate / 100) * (l.tenureMonths / 12));
+    const remaining = Math.max(0, totalPayable - (l.totalPaid || 0));
+    return `"${l.title}" ₹${remaining.toLocaleString('en-IN')} yet to recover, EMI: ₹${l.emiAmount||0} (${l.status || 'active'})`;
+  }).join(', ') || 'None'}
 
 INVESTMENTS
 - Total invested: ₹${totalInvested.toLocaleString('en-IN')}
@@ -208,9 +272,11 @@ GOALS
 - Active: ${activeGoals.length}, Completed: ${completedGoals}
 - Total target: ₹${totalGoalTarget.toLocaleString('en-IN')}
 - Total saved: ₹${totalGoalSaved.toLocaleString('en-IN')}
-- Details: ${activeGoals.slice(0,5).map(g =>
-    `"${g.title}" ${g.progressPercent||0}% done, ₹${(g.remainingAmount||0).toLocaleString('en-IN')} left`
-  ).join(', ') || 'None'}
+- Details: ${activeGoals.slice(0,5).map(g => {
+    const pct = g.targetAmount ? Math.min(Math.round(((g.currentAmount || 0) / g.targetAmount) * 100), 100) : 0;
+    const remaining = Math.max((g.targetAmount || 0) - (g.currentAmount || 0), 0);
+    return `"${g.title}" ${pct}% done, ₹${remaining.toLocaleString('en-IN')} left`;
+  }).join(', ') || 'None'}
 
 BILLS & REMINDERS (ALL bills, not just urgent ones)
 - Total monthly bill obligations: ₹${monthlyBills.toLocaleString('en-IN')}
@@ -223,8 +289,8 @@ FAMILY MEMBERS
 - Members: ${familyMembers.map(m => `"${m.name}" (${m.relation}, monthly income: ₹${(m.monthlyIncome || 0).toLocaleString('en-IN')})`).join(', ') || 'None'}
 
 NET WORTH
-- Assets: ₹${portfolioValue.toLocaleString('en-IN')}
-- Liabilities: ₹${totalLoanDebt.toLocaleString('en-IN')}
+- Assets: ₹${(portfolioValue + totalLentRecoverable).toLocaleString('en-IN')} (investments + money lent out)
+- Liabilities: ₹${totalLoanDebt.toLocaleString('en-IN')} (money borrowed)
 - Net worth: ₹${netWorth.toLocaleString('en-IN')}
 - Savings rate: ${savingsRate}%
 `.trim();

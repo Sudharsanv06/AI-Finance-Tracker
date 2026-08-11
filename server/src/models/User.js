@@ -16,6 +16,14 @@ export default class User extends FirestoreModel {
     return super.create(cleanData);
   }
 
+  async save() {
+    if (this.password && !this.password.startsWith('$2')) {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    }
+    return super.save();
+  }
+
   async matchPassword(enteredPassword) {
     if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);

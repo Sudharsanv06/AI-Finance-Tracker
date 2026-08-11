@@ -33,8 +33,14 @@ export const getBudgets = async (req, res, next) => {
 
       const spentSum = expenses.reduce((sum, e) => sum + e.amount, 0);
 
+      // Always calculate properties for serialization
+      budget.spent = spentSum;
+      budget.utilization = budget.monthlyLimit > 0 ? Math.round((spentSum / budget.monthlyLimit) * 100) : 0;
+      budget.isOver = spentSum > budget.monthlyLimit;
+      budget.needsAlert = spentSum >= budget.monthlyLimit * ((budget.alertAt || 80) / 100);
+      budget.remaining = Math.max(0, budget.monthlyLimit - spentSum);
+
       if (budget.spent !== spentSum) {
-        budget.spent = spentSum;
         await budget.save();
       }
     }

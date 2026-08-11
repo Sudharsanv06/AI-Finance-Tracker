@@ -263,10 +263,19 @@ export const rejectExpense = async (req, res, next) => {
       });
     }
 
+    const oldStatus = expense.approvalStatus;
+
     expense.approvalStatus  = 'Rejected';
     expense.approvedBy      = req.user._id;
     expense.rejectionReason = rejectionReason;
     await expense.save();
+
+    // If it was previously Approved (or Paid), deduct from event spentAmount if eventId is set
+    if (expense.eventId && (oldStatus === 'Approved' || oldStatus === 'Paid')) {
+      await Event.findByIdAndUpdate(expense.eventId, {
+        $inc: { spentAmount: -expense.amount },
+      });
+    }
 
     await expense.populate([
       { path: 'eventId',     select: 'name totalBudget spentAmount' },

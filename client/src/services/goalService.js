@@ -14,8 +14,9 @@ const goalService = {
     const res = await api.put(`/goals/${id}`, data);
     return res.data;
   },
-  addContribution: async (id, amount) => {
-    const res = await api.post(`/goals/${id}/contribute`, { amount });
+  addContribution: async (id, data) => {
+    const payload = typeof data === 'object' ? data : { amount: data };
+    const res = await api.post(`/goals/${id}/contribute`, payload);
     return res.data;
   },
   deleteGoal: async (id) => {

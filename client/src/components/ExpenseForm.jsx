@@ -61,16 +61,20 @@ const PAYMENT_METHODS = [
   'Cash','Bank Transfer','Credit Card','UPI','Cheque','Other',
 ];
 
-export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
-  const [description,   setDescription]   = useState('');
-  const [amount,        setAmount]        = useState('');
-  const [category,      setCategory]      = useState('Others');
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
+export default function ExpenseForm({ onClose, onSaved, defaultEventId, expense }) {
+  const isEdit = !!expense?._id;
+
+  const [description,   setDescription]   = useState(expense?.description || '');
+  const [amount,        setAmount]        = useState(expense?.amount      || '');
+  const [category,      setCategory]      = useState(expense?.category    || 'Others');
+  const [paymentMethod, setPaymentMethod] = useState(expense?.paymentMethod || 'Cash');
   const [date,          setDate]          = useState(
-    new Date().toISOString().split('T')[0]
+    expense?.date
+      ? new Date(expense.date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
   );
-  const [eventId,       setEventId]       = useState(defaultEventId || '');
-  const [notes,         setNotes]         = useState('');
+  const [eventId,       setEventId]       = useState(expense?.eventId?._id || expense?.eventId || defaultEventId || '');
+  const [notes,         setNotes]         = useState(expense?.notes       || '');
   const [events,        setEvents]        = useState([]);
   const [loading,       setLoading]       = useState(false);
   const [error,         setError]         = useState('');
@@ -82,7 +86,7 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
       try {
         const res = await eventService.getEvents();
         setEvents(res.data?.events || []);
-        if (!defaultEventId && res.data?.events?.length > 0) {
+        if (!expense && !defaultEventId && res.data?.events?.length > 0) {
           setEventId(res.data.events[0]._id);
         }
       } catch {
@@ -90,7 +94,7 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
       }
     };
     fetchEvents();
-  }, [defaultEventId]);
+  }, [defaultEventId, expense]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,7 +105,7 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
     if (parseFloat(amount) <= 0)        return setError('Amount must be greater than 0');
     setLoading(true);
     try {
-      await expenseService.createExpense({
+      const payload = {
         description: description.trim(),
         amount:      parseFloat(amount),
         category,
@@ -109,10 +113,15 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
         date,
         eventId:     eventId || null,
         notes:       notes.trim(),
-      });
+      };
+      if (isEdit) {
+        await expenseService.updateExpense(expense._id, payload);
+      } else {
+        await expenseService.createExpense(payload);
+      }
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add expense');
+      setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'add'} expense`);
     } finally {
       setLoading(false);
     }
@@ -134,10 +143,10 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-teal font-playfair">
-              Add Expense
+              {isEdit ? 'Edit Expense' : 'Add Expense'}
             </h2>
             <p className="text-xs text-teal-400 mt-0.5">
-              Submit a new expense for approval
+              {isEdit ? 'Update details of this expense' : 'Submit a new expense for approval'}
             </p>
           </div>
           <button
@@ -305,7 +314,7 @@ export default function ExpenseForm({ onClose, onSaved, defaultEventId }) {
             >
               {loading
                 ? <span className="spinner" />
-                : '+ Submit Expense'}
+                : isEdit ? '✓ Update' : '+ Submit Expense'}
             </button>
           </div>
         </form>

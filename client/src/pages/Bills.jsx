@@ -118,6 +118,15 @@ function BillModal({ bill, onClose, onSaved }) {
   const [isRecurring] = useState(bill?.isRecurring !== false);
   const [frequency,   setFrequency]   = useState(bill?.frequency   || 'monthly');
   const [autoPay,     setAutoPay]     = useState(bill?.autoPay     || false);
+  const [calendarDate, setCalendarDate] = useState(() => {
+    if (bill?.autoPay && bill?.dueDate) {
+      const year = new Date().getFullYear();
+      const month = bill.dueMonth ? String(bill.dueMonth).padStart(2, '0') : String(new Date().getMonth() + 1).padStart(2, '0');
+      const day = String(bill.dueDate).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return new Date().toISOString().split('T')[0];
+  });
   const [notes,       setNotes]       = useState(bill?.notes       || '');
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState('');
@@ -130,10 +139,27 @@ function BillModal({ bill, onClose, onSaved }) {
 
     setLoading(true);
     try {
+      let finalDueDate = parseInt(dueDate);
+      let finalDueMonth = undefined;
+
+      if (autoPay) {
+        if (!calendarDate) {
+          setLoading(false);
+          return setError('Autopay date is required');
+        }
+        const d = new Date(calendarDate);
+        finalDueDate = d.getDate();
+        if (frequency !== 'monthly') {
+          finalDueMonth = d.getMonth() + 1;
+        }
+      }
+
       const payload = {
         title: title.trim(), amount: parseFloat(amount),
-        category, dueDate: parseInt(dueDate),
-        isRecurring, frequency, autoPay, notes,
+        category, dueDate: finalDueDate,
+        dueMonth: finalDueMonth,
+        isRecurring, frequency: autoPay ? frequency : 'monthly',
+        autoPay, notes,
       };
       isEdit
         ? await billService.updateBill(bill._id, payload)
@@ -198,41 +224,11 @@ function BillModal({ bill, onClose, onSaved }) {
               className="input" required />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Amount (₹) *</label>
-              <input type="number" value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="999" min="1" className="input" required />
-            </div>
-            <div>
-              <label className="label">Due on Day</label>
-              <select value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="input">
-                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-                  <option key={d} value={d}>{d}{
-                    d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'
-                  } of month</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
           <div>
-            <label className="label">Frequency</label>
-            <div className="grid grid-cols-3 gap-2">
-              {['monthly','quarterly','yearly'].map((f) => (
-                <button key={f} type="button" onClick={() => setFrequency(f)}
-                  className={`py-2 rounded-xl border-2 text-xs font-semibold capitalize transition-all ${
-                    frequency === f
-                      ? 'border-teal bg-teal-50 text-teal'
-                      : 'border-teal-100 text-teal-400 hover:border-teal-200'
-                  }`}>
-                  {f}
-                </button>
-              ))}
-            </div>
+            <label className="label">Amount (₹) *</label>
+            <input type="number" value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="999" min="1" className="input" required />
           </div>
 
           <div className="flex items-center gap-4">
@@ -243,6 +239,46 @@ function BillModal({ bill, onClose, onSaved }) {
               <span className="text-sm text-teal font-semibold">Auto Pay</span>
             </label>
           </div>
+
+          {autoPay ? (
+            <>
+              <div>
+                <label className="label">Frequency</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['monthly','quarterly','yearly'].map((f) => (
+                    <button key={f} type="button" onClick={() => setFrequency(f)}
+                      className={`py-2 rounded-xl border-2 text-xs font-semibold capitalize transition-all ${
+                        frequency === f
+                          ? 'border-teal bg-teal-50 text-teal'
+                          : 'border-teal-100 text-teal-400 hover:border-teal-200'
+                      }`}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Autopay Date</label>
+                <input type="date" value={calendarDate}
+                  onChange={(e) => setCalendarDate(e.target.value)}
+                  className="input" required />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="label">Due on Day of Month</label>
+              <select value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="input">
+                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}{
+                    d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'
+                  } of month</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="label">Notes</label>
@@ -259,6 +295,7 @@ function BillModal({ bill, onClose, onSaved }) {
               {loading ? <span className="spinner" /> : isEdit ? '✓ Update' : '+ Add Bill'}
             </button>
           </div>
+
         </form>
       </div>
     </div>
@@ -271,7 +308,7 @@ function BillCard({ bill, onEdit, onDelete, onTogglePaid }) {
   const daysUntilDue    = bill.daysUntilDue;
   const isUrgent        = isDueThisMonth && daysUntilDue <= 3 && !bill.isPaid;
   const isUpcoming      = isDueThisMonth && daysUntilDue <= 7 && !bill.isPaid;
-  const isPaid          = !isDueThisMonth || bill.isPaid;
+  const isPaid          = bill.isPaid;
 
   return (
     <div className={`card card-hover p-4 flex items-center gap-4 ${
@@ -315,6 +352,21 @@ function BillCard({ bill, onEdit, onDelete, onTogglePaid }) {
             </span>
           )}
         </div>
+        {bill.upcomingDates && bill.upcomingDates.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1 text-[10px] border-t border-teal-50 pt-2">
+            <span className="text-[9px] text-teal-400 font-bold uppercase tracking-wider mb-0.5">
+              Upcoming Cycles
+            </span>
+            {bill.upcomingDates.map((item, idx) => (
+              <div key={idx} className="flex justify-between items-center bg-teal-50/30 rounded px-2 py-1 text-teal">
+                <span>{item.formattedDate}</span>
+                <span className={`font-bold ${item.daysLeft <= 3 ? 'text-red-600' : item.daysLeft <= 7 ? 'text-amber-600' : 'text-teal-500'}`}>
+                  {item.daysLeft} days left
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Amount + status */}
@@ -323,9 +375,9 @@ function BillCard({ bill, onEdit, onDelete, onTogglePaid }) {
           {formatCurrency(bill.amount)}
         </p>
         <span className={`text-[10px] font-semibold ${
-          isPaid ? 'text-green-600' : 'text-amber-600'
+          isPaid ? 'text-green-600' : !isDueThisMonth ? 'text-blue-500' : 'text-amber-600'
         }`}>
-          {isPaid ? 'Paid' : 'Unpaid'}
+          {isPaid ? 'Paid' : !isDueThisMonth ? 'Upcoming' : 'Unpaid'}
         </span>
       </div>
 
@@ -422,7 +474,7 @@ export default function Bills() {
   };
 
   const filtered = bills.filter((b) => {
-    if (filterStatus === 'paid')   return !b.isDueThisMonth || b.isPaid;
+    if (filterStatus === 'paid')   return b.isPaid;
     if (filterStatus === 'unpaid') return b.isDueThisMonth  && !b.isPaid;
     if (filterStatus === 'urgent') return b.isDueThisMonth  && !b.isPaid && b.daysUntilDue <= 7;
     return true;

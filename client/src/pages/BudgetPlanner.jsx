@@ -74,6 +74,11 @@ const CATEGORY_ICONS = {
   ),
 };
 
+const MONTHS = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+
 
 const getCategoryColor = (cat) => {
   const map = {
@@ -113,12 +118,14 @@ const CheckIcon = () => (
 );
 
 // ── Budget Form Modal ─────────────────────────────────────────────────────────
-function BudgetModal({ budget, month, year, onClose, onSaved }) {
+function BudgetModal({ budget, month: initialMonth, year: initialYear, onClose, onSaved }) {
   const isEdit = !!budget?._id;
 
   const [category,     setCategory]     = useState(budget?.category     || 'Food & Dining');
   const [monthlyLimit, setMonthlyLimit] = useState(budget?.monthlyLimit || '');
   const [alertAt,      setAlertAt]      = useState(budget?.alertAt      || 80);
+  const [selectedMonth, setSelectedMonth] = useState(budget?.month || initialMonth);
+  const [selectedYear,  setSelectedYear]  = useState(budget?.year  || initialYear);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
 
@@ -133,7 +140,8 @@ function BudgetModal({ budget, month, year, onClose, onSaved }) {
         category,
         monthlyLimit: parseFloat(monthlyLimit),
         alertAt: parseInt(alertAt),
-        month, year,
+        month: selectedMonth,
+        year: selectedYear,
       };
       isEdit
         ? await budgetService.updateBudget(budget._id, payload)
@@ -198,6 +206,32 @@ function BudgetModal({ budget, month, year, onClose, onSaved }) {
               onChange={(e) => setMonthlyLimit(e.target.value)}
               placeholder="10000" min="1" className="input" required />
           </div>
+
+          {/* Month & Year Selection */}
+          {!isEdit && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Month</label>
+                <select value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="input">
+                  {MONTHS.map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Year</label>
+                <select value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="input">
+                  {[2023, 2024, 2025, 2026, 2027].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="label">Alert When Spent (%)</label>
@@ -338,10 +372,7 @@ export default function BudgetPlanner() {
   const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
   const [error,         setError]         = useState('');
 
-  const MONTHS = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December',
-  ];
+
 
   const fetchBudgets = useCallback(async () => {
     Promise.resolve().then(() => {

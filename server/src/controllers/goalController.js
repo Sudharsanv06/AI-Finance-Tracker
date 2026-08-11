@@ -16,8 +16,9 @@ export const getGoals = async (req, res, next) => {
       });
     }
 
-    const totalTarget  = goals.reduce((s, g) => s + g.targetAmount,  0);
-    const totalSaved   = goals.reduce((s, g) => s + g.currentAmount, 0);
+    const activeAndPaused = goals.filter((g) => g.status !== 'cancelled');
+    const totalTarget  = activeAndPaused.reduce((s, g) => s + g.targetAmount,  0);
+    const totalSaved   = activeAndPaused.reduce((s, g) => s + g.currentAmount, 0);
     const completed    = goals.filter((g) => g.status === 'completed').length;
     const monthlyNeeded = goals
       .filter((g) => g.status === 'active')
@@ -51,14 +52,26 @@ export const createGoal = async (req, res, next) => {
       });
     }
 
+    const initialAmountVal = parseFloat(currentAmount) || 0;
+    const initialContributions = [];
+    if (initialAmountVal > 0) {
+      initialContributions.push({
+        amount: initialAmountVal,
+        date: new Date().toISOString().split('T')[0],
+        note: 'Initial savings',
+      });
+    }
+
     const goal = await Goal.create({
       title, category,
-      targetAmount,
-      currentAmount:       currentAmount       || 0,
-      monthlyContribution: monthlyContribution || 0,
+      targetAmount:        parseFloat(targetAmount),
+      currentAmount:       initialAmountVal,
+      monthlyContribution: parseFloat(monthlyContribution) || 0,
       deadline:            deadline            || null,
       icon:                icon                || '🎯',
       notes,
+      contributions:       initialContributions,
+      status:              'active',
       userId: req.user._id,
     });
 
@@ -104,7 +117,7 @@ export const updateGoal = async (req, res, next) => {
 // ── Add Contribution ──────────────────────────────────────────────────────────
 export const addContribution = async (req, res, next) => {
   try {
-    const { amount } = req.body;
+    const { amount, date, note } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({
@@ -120,6 +133,18 @@ export const addContribution = async (req, res, next) => {
     if (goal.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+
+    if (!goal.contributions) {
+      goal.contributions = [];
+    }
+
+    const recordDate = date || new Date().toISOString().split('T')[0];
+
+    goal.contributions.push({
+      amount: parseFloat(amount),
+      date: recordDate,
+      note: note || 'Contribution added',
+    });
 
     goal.currentAmount += parseFloat(amount);
     if (goal.currentAmount >= goal.targetAmount) {

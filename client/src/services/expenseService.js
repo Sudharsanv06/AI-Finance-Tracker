@@ -12,6 +12,11 @@ const expenseService = {
     return res.data;
   },
 
+  updateExpense: async (id, data) => {
+    const res = await api.put(`/expenses/${id}`, data);
+    return res.data;
+  },
+
   approveExpense: async (id) => {
     const res = await api.put(`/expenses/${id}/approve`);
     return res.data;

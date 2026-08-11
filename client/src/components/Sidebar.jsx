@@ -85,7 +85,6 @@ const LogoutIcon = () => (
 );
 
 const LINKS = [
-  { name: 'Dashboard',   path: '/dashboard',   icon: DashboardIcon },
   { name: 'Events',      path: '/events',      icon: EventsIcon },
   { name: 'Expenses',    path: '/expenses',    icon: ExpensesIcon },
   { name: 'Income',      path: '/income',      icon: IncomeIcon },
@@ -95,7 +94,6 @@ const LINKS = [
   { name: 'Budget',      path: '/budget',      icon: BudgetIcon },
   { name: 'Goals',       path: '/goals',       icon: GoalsIcon },
   { name: 'Bills',       path: '/bills',       icon: BillsIcon },
-  { name: 'Profile',     path: '/profile',     icon: ProfileIcon },
 ];
 
 const ROLE_COLORS = {
@@ -130,7 +128,10 @@ export default function Sidebar() {
   const renderSidebarContent = () => (
     <div className="flex flex-col h-full bg-cream border-r border-teal-100/60 p-4">
       {/* ── Brand Header ────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-2 py-4 mb-6 border-b border-teal-100/55">
+      <div 
+        onClick={() => { setIsOpen(false); navigate('/dashboard'); }}
+        className="flex items-center gap-3 px-2 py-4 mb-6 border-b border-teal-100/55 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+      >
         <img
           src={logoImg}
           alt="Paisa Pulse Logo"
@@ -166,7 +167,10 @@ export default function Sidebar() {
 
       {/* ── User & Logout Footer ────────────────────────────────── */}
       <div className="mt-auto pt-4 border-t border-teal-100/55 flex flex-col gap-3">
-        <div className="flex items-center gap-3 px-2">
+        <div 
+          onClick={() => { setIsOpen(false); navigate('/profile'); }}
+          className="flex items-center gap-3 px-2 py-1.5 rounded-xl cursor-pointer hover:bg-teal-50/80 transition-all duration-200"
+        >
           <div className="w-10 h-10 rounded-full bg-teal overflow-hidden flex items-center
                           justify-center text-cream text-sm font-bold shrink-0 shadow-teal-sm">
             {user?.profilePhoto ? (
@@ -175,10 +179,11 @@ export default function Sidebar() {
               getInitials(user?.name)
             )}
           </div>
-          <div className="min-w-0">
-            <h2 className="text-sm font-bold text-teal font-playfair truncate">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-bold text-teal font-playfair truncate leading-tight">
               {user?.name}
             </h2>
+            <span className="text-[9px] text-teal-400 font-sans tracking-wide uppercase font-semibold">View Profile</span>
           </div>
         </div>
 
@@ -205,7 +210,10 @@ export default function Sidebar() {
           </svg>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div 
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+        >
           <img src={logoImg} alt="Paisa Pulse Logo" className="w-7 h-7 object-contain" />
           <span className="text-teal font-bold text-base font-playfair">Paisa Pulse</span>
         </div>
