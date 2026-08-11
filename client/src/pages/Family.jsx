@@ -52,7 +52,6 @@ function MemberModal({ member, onClose, onSaved }) {
 
   const [name,          setName]          = useState(member?.name          || '');
   const [relation,      setRelation]      = useState(member?.relation      || 'Other');
-  const [monthlyIncome, setMonthlyIncome] = useState(member?.monthlyIncome || '');
   const [color,         setColor]         = useState(member?.color         || '#004643');
   const [date,          setDate]          = useState(
     member?.date 
@@ -71,7 +70,7 @@ function MemberModal({ member, onClose, onSaved }) {
     try {
       const payload = {
         name: name.trim(), relation,
-        monthlyIncome: parseFloat(monthlyIncome) || 0,
+        monthlyIncome: 0,
         color,
         date,
       };
@@ -135,13 +134,6 @@ function MemberModal({ member, onClose, onSaved }) {
             </div>
           )}
 
-          <div>
-            <label className="label">Monthly Income (₹)</label>
-            <input type="number" value={monthlyIncome}
-              onChange={(e) => setMonthlyIncome(e.target.value)}
-              placeholder="50000" min="0" className="input" />
-          </div>
-
           {/* Record Date */}
           <div>
             <label className="label">Start / Record Date</label>
@@ -201,23 +193,13 @@ function MemberCard({ member, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-teal-50 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-teal-400 uppercase tracking-wide mb-0.5">
-            Monthly Income
-          </p>
-          <p className="text-sm font-bold text-teal">
-            {formatCurrency(member.monthlyIncome || 0)}
-          </p>
-        </div>
-        <div className="bg-teal-50 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-teal-400 uppercase tracking-wide mb-0.5">
-            Recorded This Month
-          </p>
-          <p className="text-sm font-bold text-teal">
-            {formatCurrency(member.recordedIncome || 0)}
-          </p>
-        </div>
+      <div className="bg-teal-50 rounded-xl p-3.5 text-center">
+        <p className="text-[10px] text-teal-400 uppercase tracking-wider mb-0.5 font-semibold">
+          Recorded This Month
+        </p>
+        <p className="text-base font-extrabold text-teal">
+          {formatCurrency(member.recordedIncome || 0)}
+        </p>
       </div>
 
       <div className="flex gap-2 pt-2 border-t border-teal-50">
@@ -284,7 +266,7 @@ export default function Family() {
   };
 
   const totalFamilyIncome = members.reduce(
-    (s, m) => s + (m.monthlyIncome || 0), 0
+    (s, m) => s + (m.recordedIncome || 0), 0
   );
 
   return (

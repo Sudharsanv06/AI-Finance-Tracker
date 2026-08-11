@@ -169,7 +169,13 @@ export const chat = async (req, res, next) => {
       const allTimeExpenseTotal = expenseAgg[0]?.allTime?.[0]?.total || 0;
 
       const netWorth = portfolioValue + totalLentRecoverable - totalLoanDebt;
-      const totalFamilyMonthlyIncome = familyMembers.reduce((s, m) => s + (m.monthlyIncome || 0), 0);
+      const totalFamilyMonthlyIncome = incomes
+        .filter(i => {
+          if (!i.date) return false;
+          const d = new Date(i.date);
+          return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+        })
+        .reduce((sum, i) => sum + (i.amount || 0), 0);
       const savingsRate = monthlyIncome > 0
         ? Math.round(
             ((monthlyIncome - monthlyEMI - monthlyBills - monthlyExpenseTotal) /
@@ -286,7 +292,16 @@ ${billDetails ? `- All bills:\n  - ${billDetails}` : '- No bills tracked yet'}
 FAMILY MEMBERS
 - Total family members: ${familyMembers.length}
 - Total family monthly income: ₹${totalFamilyMonthlyIncome.toLocaleString('en-IN')}
-- Members: ${familyMembers.map(m => `"${m.name}" (${m.relation}, monthly income: ₹${(m.monthlyIncome || 0).toLocaleString('en-IN')})`).join(', ') || 'None'}
+- Members: ${familyMembers.map(m => {
+    const rec = incomes
+      .filter(i => {
+        if (!i.date || i.familyMember !== m._id) return false;
+        const d = new Date(i.date);
+        return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+      })
+      .reduce((sum, i) => sum + (i.amount || 0), 0);
+    return `"${m.name}" (${m.relation}, recorded this month: ₹${rec.toLocaleString('en-IN')})`;
+  }).join(', ') || 'None'}
 
 NET WORTH
 - Assets: ₹${(portfolioValue + totalLentRecoverable).toLocaleString('en-IN')} (investments + money lent out)

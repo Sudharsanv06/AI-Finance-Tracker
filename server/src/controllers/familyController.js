@@ -91,24 +91,11 @@ export const createFamilyMember = async (req, res, next) => {
     const member = await FamilyMember.create({
       name: name.trim(),
       relation:      relation      || 'Other',
-      monthlyIncome: monthlyIncome || 0,
+      monthlyIncome: 0,
       color:         color         || '#004643',
       date:          recordDate,
       userId:        req.user._id,
     });
-
-    if (monthlyIncome > 0) {
-      await Income.create({
-        source: 'Salary',
-        amount: parseFloat(monthlyIncome),
-        date:   recordDate,
-        description: `Monthly income for ${name.trim()}`,
-        isRecurring: true,
-        frequency: 'monthly',
-        familyMember: member._id,
-        userId: req.user._id,
-      });
-    }
 
     res.status(201).json({
       success: true,
