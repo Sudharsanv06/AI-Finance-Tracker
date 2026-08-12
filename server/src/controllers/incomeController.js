@@ -78,11 +78,26 @@ export const createIncome = async (req, res, next) => {
       });
     }
 
+    let finalFamilyMember = familyMember;
+    if (!finalFamilyMember) {
+      let selfMember = await FamilyMember.findOne({ userId: req.user._id, relation: 'Self' });
+      if (!selfMember) {
+        selfMember = await FamilyMember.create({
+          name:          req.user.name || 'Self',
+          relation:      'Self',
+          monthlyIncome: 0,
+          color:         '#004643',
+          userId:        req.user._id,
+        });
+      }
+      finalFamilyMember = selfMember._id;
+    }
+
     const income = await Income.create({
       source, amount, date, description,
       isRecurring: isRecurring || false,
       frequency:   frequency   || 'one-time',
-      familyMember: familyMember || null,
+      familyMember: finalFamilyMember,
       notes,
       userId: req.user._id,
     });
@@ -112,6 +127,13 @@ export const updateIncome = async (req, res, next) => {
     if (income.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false, message: 'Not authorized',
+      });
+    }
+
+    if (req.body.hasOwnProperty('familyMember') && !req.body.familyMember) {
+      return res.status(400).json({
+        success: false,
+        message: 'Family member is required',
       });
     }
 

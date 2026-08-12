@@ -3,6 +3,46 @@ import { useAuth }  from '../context/AuthContext';
 import api          from '../services/api';
 import { getInitials } from '../utils/helpers';
 
+// Helper to compress image files to base64 below Firestore's 1MB limit
+const compressImage = (file, maxWidth = 800, maxHeight = 800, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+    };
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+  });
+};
+
 const ROLE_CONFIG = {
   Organizer:    { color: 'bg-teal-50 text-teal border-teal-200',     dotColor: 'bg-teal' },
   Approver:     { color: 'bg-amber-50 text-amber-700 border-amber-200', dotColor: 'bg-amber-500' },
@@ -80,28 +120,24 @@ export default function Profile() {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 1024 * 1024) {
-      alert('File size must be under 1MB');
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be under 5MB');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64String = reader.result;
-      setUploadingPhoto(true);
-      try {
-        const res = await api.put('/auth/profile', {
-          name: user.name,
-          profilePhoto: base64String,
-        });
-        updateUser(res.data.data.user);
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to upload photo');
-      } finally {
-        setUploadingPhoto(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUploadingPhoto(true);
+    try {
+      const base64String = await compressImage(file, 800, 800, 0.75);
+      const res = await api.put('/auth/profile', {
+        name: user.name,
+        profilePhoto: base64String,
+      });
+      updateUser(res.data.data.user);
+    } catch (err) {
+      alert(err.message || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   return (

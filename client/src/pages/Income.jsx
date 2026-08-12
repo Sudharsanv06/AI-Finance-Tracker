@@ -111,6 +111,7 @@ function IncomeModal({ income, members, onClose, onSaved }) {
     setError('');
     if (!amount || isNaN(amount)) return setError('Valid amount is required');
     if (parseFloat(amount) <= 0)  return setError('Amount must be greater than 0');
+    if (!familyMember)            return setError('Family member is required');
 
     setLoading(true);
     try {
@@ -209,7 +210,7 @@ function IncomeModal({ income, members, onClose, onSaved }) {
           {/* Family member */}
           {members.length > 0 && (
             <div>
-              <label className="label">Family Member (optional)</label>
+              <label className="label">Family Member *</label>
               <select value={familyMember}
                 onChange={(e) => setFamilyMember(e.target.value)}
                 className="input">
