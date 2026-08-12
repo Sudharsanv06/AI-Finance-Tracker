@@ -3,7 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
   baseURL: 'https://paisa-pulse-server.onrender.com/api',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'x-client-type': 'mobile',
+  },
   timeout: 15000,
 });
 

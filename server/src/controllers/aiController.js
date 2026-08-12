@@ -379,6 +379,7 @@ export const categorizeExpense = async (req, res, next) => {
   try {
     const body        = req.body || {};
     const description = body.description || '';
+    const eventId     = body.eventId || null;
 
     if (!description.trim()) {
       return res.status(400).json({
@@ -387,19 +388,38 @@ export const categorizeExpense = async (req, res, next) => {
       });
     }
 
+    const hasEvent = eventId && eventId !== 'null' && eventId !== 'undefined' && eventId !== '';
+
+    const categoriesList = hasEvent
+      ? ['Venue', 'Catering', 'Decoration', 'Entertainment', 'Marketing', 'Equipment', 'Staff', 'Transportation', 'Others']
+      : ['Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 'Health', 'Education', 'Utilities', 'Rent', 'Groceries', 'Travel', 'Personal Care', 'Other'];
+
+    const categoriesStr = categoriesList.join(', ');
+
+    const systemPrompt = hasEvent
+      ? `You are an expense categorizer for event management.
+Given an expense description, respond with ONLY one category from this list:
+${categoriesStr}
+
+Rules:
+- Respond with ONLY the category word, nothing else
+- No explanation, no punctuation, just the category
+- Examples: "Hall rental" → Venue, "Food and snacks" → Catering, "DJ booking" → Entertainment`
+      : `You are an expense categorizer for personal finance tracking.
+Given an expense description, respond with ONLY one category from this list:
+${categoriesStr}
+
+Rules:
+- Respond with ONLY the category word, nothing else
+- No explanation, no punctuation, just the category
+- Examples: "Lunch at Restaurant" → Food & Dining, "Uber ride" → Transportation, "Rent payment" → Rent`;
+
     const completion = await getGroq().chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [
         {
           role:    'system',
-          content: `You are an expense categorizer for event management.
-Given an expense description, respond with ONLY one category from this list:
-Venue, Catering, Decoration, Entertainment, Marketing, Equipment, Staff, Transportation, Others
-
-Rules:
-- Respond with ONLY the category word, nothing else
-- No explanation, no punctuation, just the category
-- Examples: "Hall rental" → Venue, "Food and snacks" → Catering, "DJ booking" → Entertainment`,
+          content: systemPrompt,
         },
         {
           role:    'user',
@@ -410,12 +430,9 @@ Rules:
       temperature: 0.1,
     });
 
-    const raw   = completion.choices[0]?.message?.content?.trim() || 'Others';
-    const valid = [
-      'Venue','Catering','Decoration','Entertainment',
-      'Marketing','Equipment','Staff','Transportation','Others',
-    ];
-    const category = valid.includes(raw) ? raw : 'Others';
+    const fallback = hasEvent ? 'Others' : 'Other';
+    const raw   = completion.choices[0]?.message?.content?.trim() || fallback;
+    const category = categoriesList.includes(raw) ? raw : fallback;
 
     res.json({
       success: true,

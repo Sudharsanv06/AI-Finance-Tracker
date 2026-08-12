@@ -84,6 +84,7 @@ export const createEvent = async (req, res, next) => {
       date,
       category,
       totalBudget,
+      spentAmount: 0,
       status:    status || 'active',
       createdBy: req.user._id,
     });

@@ -24,8 +24,13 @@ function AddIncomeModal({ visible, onClose, onSaved }) {
     if (!amount || isNaN(amount)) return Alert.alert('Error', 'Valid amount required');
     setLoading(true);
     try {
-      await incomeService.createIncome({ source, amount: parseFloat(amount), description: desc });
+      const res = await incomeService.createIncome({ source, amount: parseFloat(amount), description: desc });
       setAmount(''); setDesc(''); setSource('Salary');
+      if (res && res.assignedFallback) {
+        Alert.alert('Success', 'Income added under Self (default)');
+      } else {
+        Alert.alert('Success', 'Income added successfully');
+      }
       onSaved();
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed');

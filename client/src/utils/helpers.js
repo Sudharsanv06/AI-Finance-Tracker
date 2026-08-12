@@ -18,8 +18,10 @@ export const formatDate = (date) => {
 
 // Get budget utilization percentage
 export const getUtilization = (spent, total) => {
-  if (!total) return 0;
-  return Math.min(Math.round((spent / total) * 100), 100);
+  const spentVal = spent || 0;
+  const totalVal = total || 0;
+  if (!totalVal) return 0;
+  return Math.min(Math.round((spentVal / totalVal) * 100), 100);
 };
 
 // Get utilization color class

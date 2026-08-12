@@ -23,6 +23,7 @@ import goalRoutes   from './routes/goalRoutes.js';
 import billRoutes   from './routes/billRoutes.js';
 
 import { protect }     from './middleware/authMiddleware.js';
+import { initRecurringIncomeScheduler } from './services/recurringIncomeScheduler.js';
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -123,4 +124,5 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV}`);
+  initRecurringIncomeScheduler();
 });

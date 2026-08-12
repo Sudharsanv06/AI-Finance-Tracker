@@ -7,8 +7,9 @@ const incomeService = {
     return res.data;
   },
 
-  getSummary: async () => {
-    const res = await api.get('/income/summary');
+  getSummary: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res   = await api.get(`/income/summary${query ? `?${query}` : ''}`);
     return res.data;
   },
 

@@ -1,8 +1,9 @@
 import api from './api';
 
 const familyService = {
-  getMembers: async () => {
-    const res = await api.get('/family');
+  getMembers: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res   = await api.get(`/family${query ? `?${query}` : ''}`);
     return res.data;
   },
 
@@ -18,6 +19,11 @@ const familyService = {
 
   deleteMember: async (id) => {
     const res = await api.delete(`/family/${id}`);
+    return res.data;
+  },
+
+  getDeleteImpact: async (id) => {
+    const res = await api.get(`/family/${id}/delete-impact`);
     return res.data;
   },
 };

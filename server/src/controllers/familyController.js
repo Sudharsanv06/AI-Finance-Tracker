@@ -4,7 +4,12 @@ import Income       from '../models/Income.js';
 // ── Get All Family Members ────────────────────────────────────────────────────
 export const getFamilyMembers = async (req, res, next) => {
   try {
-    let members = await FamilyMember.find({ userId: req.user._id })
+    const { month, year } = req.query;
+    const now = new Date();
+    const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+    const targetYear = year ? parseInt(year) : now.getFullYear();
+
+    let members = await FamilyMember.find({ userId: req.user._id, archived: { $ne: true } })
       .sort({ createdAt: 1 });
 
     // Auto-create Self member if not exists
@@ -25,9 +30,8 @@ export const getFamilyMembers = async (req, res, next) => {
     // Attach income stats to each member
     const membersWithStats = await Promise.all(
       members.map(async (member) => {
-        const now        = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const monthStart = new Date(targetYear, targetMonth - 1, 1);
+        const monthEnd   = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
 
         let monthlyIncome = [];
         let totalIncome = [];
@@ -61,6 +65,17 @@ export const getFamilyMembers = async (req, res, next) => {
           ...member.toJSON(),
           recordedIncome: monthlyIncome.reduce((s, i) => s + (i.amount || 0), 0),
           totalIncome:    totalIncome.reduce((s, i)   => s + (i.amount || 0), 0),
+          incomes:        monthlyIncome.map(i => ({
+            _id: i._id,
+            id: i.id,
+            source: i.source,
+            amount: i.amount,
+            date: i.date,
+            description: i.description,
+            notes: i.notes,
+            isRecurring: i.isRecurring,
+            frequency: i.frequency,
+          })).sort((a, b) => new Date(b.date) - new Date(a.date)),
         };
       })
     );
@@ -150,8 +165,75 @@ export const deleteFamilyMember = async (req, res, next) => {
         success: false, message: 'Not authorized',
       });
     }
-    await member.deleteOne();
-    res.json({ success: true, message: 'Member deleted' });
+    if (member.relation === 'Self') {
+      return res.status(400).json({
+        success: false, message: 'Cannot delete the Self member',
+      });
+    }
+
+    // Soft-delete: mark as archived
+    await FamilyMember.findByIdAndUpdate(member.id, { archived: true, archivedAt: new Date() });
+
+    // Deactivate any recurring templates tied to this member
+    const templates = await Income.find({
+      userId: req.user._id,
+      familyMember: member.id,
+      isTemplate: true,
+      active: true,
+    });
+
+    for (const t of templates) {
+      await Income.findByIdAndUpdate(t.id, { active: false, deactivatedReason: 'family_member_archived' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Member archived successfully',
+      data: {
+        templatesDeactivated: templates.length,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Get Delete Impact ─────────────────────────────────────────────────────────
+export const getDeleteImpact = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const member = await FamilyMember.findById(id);
+    if (!member) {
+      return res.status(404).json({
+        success: false, message: 'Member not found',
+      });
+    }
+    if (member.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false, message: 'Not authorized',
+      });
+    }
+
+    // Find all income records associated with this family member
+    const incomes = await Income.find({
+      userId: req.user._id,
+      familyMember: id,
+    });
+
+    const activeTemplates = incomes.filter(
+      d => d.isTemplate && d.active
+    );
+
+    const totalAmount = incomes.reduce((sum, d) => sum + (d.amount || 0), 0);
+
+    res.json({
+      success: true,
+      data: {
+        incomeCount: incomes.length,
+        totalAmount,
+        activeRecurringCount: activeTemplates.length,
+      }
+    });
   } catch (error) {
     next(error);
   }

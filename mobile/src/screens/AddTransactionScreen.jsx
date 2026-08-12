@@ -273,13 +273,15 @@ export default function AddTransactionScreen({ navigation, route }) {
 
     setLoading(true);
     try {
+      let assignedFallback = false;
       if (txType === 'Income') {
-        await incomeService.createIncome({
+        const res = await incomeService.createIncome({
           source: category,
           amount: numAmount,
           description: description.trim(),
           date: selectedDate.toISOString()
         });
+        assignedFallback = res && res.assignedFallback;
       } else if (txType === 'Expense') {
         await expenseService.createExpense({
           description: description.trim(),
@@ -303,7 +305,10 @@ export default function AddTransactionScreen({ navigation, route }) {
           eventId: finalEventId
         });
       }
-      Alert.alert('Success', 'Transaction saved successfully!', [
+      const successMsg = assignedFallback 
+        ? 'Transaction saved under Self (default)!' 
+        : 'Transaction saved successfully!';
+      Alert.alert('Success', successMsg, [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (err) {

@@ -2,9 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import familyService from '../services/familyService';
 import incomeService from '../services/incomeService';
 import ConfirmModal  from '../components/ConfirmModal';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, formatDate } from '../utils/helpers';
 
 const RELATIONS = ['Spouse','Parent','Child','Sibling','Other'];
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const RELATION_ICONS = {
   Self: (
@@ -171,7 +176,7 @@ function MemberModal({ member, onClose, onSaved }) {
 }
 
 // ── Member Card ───────────────────────────────────────────────────────────────
-function MemberCard({ member, onEdit, onDelete }) {
+function MemberCard({ member, monthName, onEdit, onDelete }) {
   const initials = member.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
@@ -193,13 +198,31 @@ function MemberCard({ member, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="bg-teal-50 rounded-xl p-3.5 text-center">
-        <p className="text-[10px] text-teal-400 uppercase tracking-wider mb-0.5 font-semibold">
-          Recorded This Month
-        </p>
-        <p className="text-base font-extrabold text-teal">
-          {formatCurrency(member.recordedIncome || 0)}
-        </p>
+      <div className="bg-teal-50 rounded-xl p-3.5 flex flex-col gap-2">
+        <div className="flex justify-between items-center pb-1 border-b border-teal-100/50">
+          <span className="text-[10px] text-teal-400 uppercase tracking-wider font-semibold">
+            Recorded in {monthName}
+          </span>
+          <span className="text-sm font-extrabold text-teal">
+            {formatCurrency(member.recordedIncome || 0)}
+          </span>
+        </div>
+
+        {member.incomes && member.incomes.length > 0 ? (
+          <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+            {member.incomes.map((inc) => (
+              <div key={inc._id} className="flex justify-between items-center text-xs pt-1 first:pt-0">
+                <div className="min-w-0">
+                  <p className="font-semibold text-teal truncate">{inc.source}</p>
+                  <p className="text-[10px] text-teal-400">{formatDate(inc.date)}</p>
+                </div>
+                <span className="font-bold text-teal ml-2">{formatCurrency(inc.amount)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-teal-400 italic text-center py-1">No incomes recorded</p>
+        )}
       </div>
 
       <div className="flex gap-2 pt-2 border-t border-teal-50">
@@ -220,13 +243,46 @@ function MemberCard({ member, onEdit, onDelete }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Family() {
+  const now = new Date();
   const [members,      setMembers]      = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [showModal,    setShowModal]    = useState(false);
   const [editingMember,setEditingMember]= useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteImpact, setDeleteImpact] = useState(null);
+  const [impactLoading, setImpactLoading] = useState(false);
   const [summary,      setSummary]      = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
   const [error,        setError]        = useState('');
+
+  const triggerDeleteFlow = async (memberId) => {
+    const m = members.find(x => x._id === memberId);
+    if (!m) return;
+    
+    setDeleteTarget(memberId);
+    setImpactLoading(true);
+    setDeleteImpact(null);
+    try {
+      const res = await familyService.getDeleteImpact(memberId);
+      setDeleteImpact({
+        name: m.name,
+        incomeCount: res.data?.incomeCount || 0,
+        totalAmount: res.data?.totalAmount || 0,
+        activeRecurringCount: res.data?.activeRecurringCount || 0,
+      });
+    } catch (err) {
+      console.error(err);
+      setDeleteImpact({
+        name: m.name,
+        incomeCount: 0,
+        totalAmount: 0,
+        activeRecurringCount: 0,
+      });
+    } finally {
+      setImpactLoading(false);
+    }
+  };
 
   const fetchAll = useCallback(async () => {
     Promise.resolve().then(() => {
@@ -235,8 +291,8 @@ export default function Family() {
     });
     try {
       const [famRes, sumRes] = await Promise.all([
-        familyService.getMembers(),
-        incomeService.getSummary(),
+        familyService.getMembers({ month: selectedMonth, year: selectedYear }),
+        incomeService.getSummary({ month: selectedMonth, year: selectedYear }),
       ]);
       setMembers(famRes.data?.members || []);
       setSummary(sumRes.data || null);
@@ -245,7 +301,7 @@ export default function Family() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedMonth, selectedYear, setLoading, setMembers, setSummary, setError]);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -262,12 +318,16 @@ export default function Family() {
       setError('Failed to delete');
     } finally {
       setDeleteTarget(null);
+      setDeleteImpact(null);
     }
   };
 
   const totalFamilyIncome = members.reduce(
     (s, m) => s + (m.recordedIncome || 0), 0
   );
+
+  const selfMember = members.find((m) => m.relation === 'Self');
+  const myIncome = selfMember ? (selfMember.recordedIncome || 0) : 0;
 
   return (
     <div className="page">
@@ -287,12 +347,30 @@ export default function Family() {
           </button>
         </div>
 
+        {/* Filter Dropdowns */}
+        <div className="flex items-center gap-3 mb-6">
+          <select value={selectedMonth}
+            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+            className="input w-auto py-1.5 px-3 text-sm">
+            {MONTHS.map((m, i) => (
+              <option key={m} value={i + 1}>{m}</option>
+            ))}
+          </select>
+          <select value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="input w-auto py-1.5 px-3 text-sm">
+            {[2023, 2024, 2025, 2026, 2027].map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Family Summary */}
         <div className="card p-6">
           <h2 className="section-title mb-4">Family Financial Overview</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-teal-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-teal-400 uppercase tracking-wider mb-1">
+              <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">
                 Family Members
               </p>
               <p className="text-2xl font-bold text-teal font-playfair">
@@ -300,19 +378,19 @@ export default function Family() {
               </p>
             </div>
             <div className="bg-teal-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-teal-400 uppercase tracking-wider mb-1">
-                Combined Monthly
+              <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">
+                My Income ({MONTHS[selectedMonth - 1]} {selectedYear})
               </p>
               <p className="text-2xl font-bold text-teal font-playfair">
-                {formatCurrency(totalFamilyIncome)}
+                {formatCurrency(myIncome)}
               </p>
             </div>
             <div className="bg-teal-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-teal-400 uppercase tracking-wider mb-1">
-                This Month Income
+              <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">
+                Combined Income ({MONTHS[selectedMonth - 1]} {selectedYear})
               </p>
               <p className="text-2xl font-bold text-teal font-playfair">
-                {formatCurrency(summary?.monthlyTotal || 0)}
+                {formatCurrency(totalFamilyIncome)}
               </p>
             </div>
           </div>
@@ -356,8 +434,9 @@ export default function Family() {
               <MemberCard
                 key={member._id}
                 member={member}
+                monthName={MONTHS[selectedMonth - 1]}
                 onEdit={(m) => { setEditingMember(m); setShowModal(true); }}
-                onDelete={setDeleteTarget}
+                onDelete={triggerDeleteFlow}
               />
             ))}
           </div>
@@ -375,10 +454,16 @@ export default function Family() {
       <ConfirmModal
         isOpen={!!deleteTarget}
         title="Remove Family Member"
-        message="This member will be removed from your family group."
-        confirmLabel="Remove"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
+        message={
+          impactLoading
+            ? "Calculating delete impact..."
+            : deleteImpact
+            ? `Deleting ${deleteImpact.name} will archive them and their ${deleteImpact.incomeCount} income records (${formatCurrency(deleteImpact.totalAmount)} total). ${deleteImpact.activeRecurringCount} active recurring income(s) will stop generating new entries. Their historical data stays intact. Continue?`
+            : "This member will be removed from your family group."
+        }
+        confirmLabel={impactLoading ? "Loading..." : "Remove"}
+        onConfirm={impactLoading ? () => {} : handleDelete}
+        onCancel={() => { setDeleteTarget(null); setDeleteImpact(null); }}
       />
     </div>
   );

@@ -90,6 +90,7 @@ const WalletIcon = ({ className = "w-5 h-5" }) => (
 // ── Income Form Modal ─────────────────────────────────────────────────────────
 function IncomeModal({ income, members, onClose, onSaved }) {
   const isEdit = !!income?._id;
+  const assignableMembers = members.filter(m => !m.archived || m._id === (income?.familyMember?._id || income?.familyMember));
 
   const [source,       setSource]       = useState(income?.source      || 'Salary');
   const [amount,       setAmount]       = useState(income?.amount      || '');
@@ -215,12 +216,23 @@ function IncomeModal({ income, members, onClose, onSaved }) {
                 onChange={(e) => setFamilyMember(e.target.value)}
                 className="input">
                 <option value="">Select member...</option>
-                {members.map((m) => (
+                {assignableMembers.map((m) => (
                   <option key={m._id} value={m._id}>
                     {m.name} ({m.relation})
                   </option>
                 ))}
               </select>
+              {isEdit && income.isTemplate && (
+                <p className="text-[11px] text-amber-600 font-semibold mt-1.5 leading-normal">
+                  ⚠️ This is a recurring income template. Changing the family member will apply to
+                  future occurrences only — past entries won't be affected.
+                </p>
+              )}
+              {isEdit && income.parentRecurringId && (
+                <p className="text-[11px] text-slate-500 font-semibold mt-1.5 leading-normal">
+                  ℹ️ This is a single occurrence of a recurring income. Changes here apply only to this entry.
+                </p>
+              )}
             </div>
           )}
 

@@ -1,5 +1,6 @@
 import Income       from '../models/Income.js';
 import FamilyMember from '../models/FamilyMember.js';
+import { calculateNextRunDate } from '../utils/dateHelpers.js';
 
 // ── Get All Income ────────────────────────────────────────────────────────────
 // GET /api/income
@@ -78,8 +79,21 @@ export const createIncome = async (req, res, next) => {
       });
     }
 
+    const clientType = req.headers['x-client-type'];
+    const isInternalSource = req.internalSource === 'ai-quick-add';
+
     let finalFamilyMember = familyMember;
+    let assignedFallback = false;
+
     if (!finalFamilyMember) {
+      const fallbackAllowed = clientType === 'mobile' || isInternalSource;
+      if (!fallbackAllowed) {
+        return res.status(400).json({
+          success: false,
+          message: 'Family member is required',
+        });
+      }
+
       let selfMember = await FamilyMember.findOne({ userId: req.user._id, relation: 'Self' });
       if (!selfMember) {
         selfMember = await FamilyMember.create({
@@ -91,7 +105,14 @@ export const createIncome = async (req, res, next) => {
         });
       }
       finalFamilyMember = selfMember._id;
+      assignedFallback = true;
+
+      // Log warning for fallback usage (technical debt tracking)
+      console.warn(`[income-fallback] user=${req.user._id} client=${clientType || 'unknown'}`);
     }
+
+    const isTemplate = isRecurring || false;
+    const nextRunDate = isTemplate ? calculateNextRunDate(date, frequency || 'monthly').toISOString().split('T')[0] : null;
 
     const income = await Income.create({
       source, amount, date, description,
@@ -100,6 +121,9 @@ export const createIncome = async (req, res, next) => {
       familyMember: finalFamilyMember,
       notes,
       userId: req.user._id,
+      isTemplate,
+      active: isTemplate ? true : false,
+      nextRunDate,
     });
 
     await income.populate('familyMember', 'name relation color');
@@ -108,6 +132,7 @@ export const createIncome = async (req, res, next) => {
       success: true,
       message: 'Income added successfully',
       data:    { income },
+      assignedFallback,
     });
   } catch (error) {
     next(error);
@@ -137,8 +162,43 @@ export const updateIncome = async (req, res, next) => {
       });
     }
 
+    const updateData = { ...req.body };
+
+    if (updateData.hasOwnProperty('isRecurring')) {
+      const isTemplate = updateData.isRecurring || false;
+      updateData.isTemplate = isTemplate;
+      updateData.active = isTemplate;
+      if (isTemplate) {
+        const targetDate = updateData.date || income.date;
+        const targetFreq = updateData.frequency || income.frequency || 'monthly';
+        updateData.nextRunDate = calculateNextRunDate(targetDate, targetFreq).toISOString().split('T')[0];
+      } else {
+        updateData.nextRunDate = null;
+      }
+    } else if (income.isTemplate && (updateData.date || updateData.frequency)) {
+      const targetDate = updateData.date || income.date;
+      const targetFreq = updateData.frequency || income.frequency;
+      updateData.nextRunDate = calculateNextRunDate(targetDate, targetFreq).toISOString().split('T')[0];
+    }
+
+    if (updateData.familyMember && updateData.familyMember !== (income.familyMember?._id || income.familyMember)?.toString()) {
+      const targetMember = await FamilyMember.findById(updateData.familyMember);
+      if (!targetMember) {
+        return res.status(400).json({
+          success: false,
+          message: 'Family member not found',
+        });
+      }
+      if (targetMember.archived) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot assign income to an archived family member',
+        });
+      }
+    }
+
     const updated = await Income.findByIdAndUpdate(
-      req.params.id, req.body, { new: true, runValidators: true }
+      req.params.id, updateData, { new: true, runValidators: true }
     );
     if (updated) {
       await updated.populate('familyMember', 'name relation color');
@@ -180,11 +240,15 @@ export const deleteIncome = async (req, res, next) => {
 // GET /api/income/summary
 export const getIncomeSummary = async (req, res, next) => {
   try {
+    const { month, year } = req.query;
     const now        = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    const yearStart  = new Date(now.getFullYear(), 0, 1);
-    const yearEnd    = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+    const targetYear  = year ? parseInt(year) : now.getFullYear();
+
+    const monthStart = new Date(targetYear, targetMonth - 1, 1);
+    const monthEnd   = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+    const yearStart  = new Date(targetYear, 0, 1);
+    const yearEnd    = new Date(targetYear, 11, 31, 23, 59, 59, 999);
 
     // Monthly income
     const monthlyIncome = await Income.find({
