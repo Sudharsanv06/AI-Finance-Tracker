@@ -620,7 +620,7 @@ export default function Goals() {
 
         {/* Summary */}
         {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
                 label: 'Total Target',
@@ -671,7 +671,7 @@ export default function Goals() {
                     {s.label}
                   </span>
                 </div>
-                <p className="text-2xl font-bold text-teal font-playfair">{s.value}</p>
+                <p className="text-lg xs:text-xl sm:text-2xl font-bold text-teal font-playfair truncate" title={String(s.value)}>{s.value}</p>
               </div>
             ))}
           </div>

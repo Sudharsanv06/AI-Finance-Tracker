@@ -549,7 +549,7 @@ export default function Investments() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label:     'Invested Amount',
@@ -585,11 +585,11 @@ export default function Investments() {
                   {s.label}
                 </span>
               </div>
-              <p className={`text-2xl font-bold font-playfair ${
+              <p className={`text-lg xs:text-xl sm:text-2xl font-bold font-playfair truncate ${
                 s.highlight ? 'text-red-600'
                 : s.green    ? 'text-green-600'
                 : 'text-teal'
-              }`}>
+              }`} title={String(s.value)}>
                 {s.value}
               </p>
             </div>
@@ -598,16 +598,16 @@ export default function Investments() {
 
         {/* Monthly contribution + counts */}
         {summary && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3">
             <div className="card p-4 flex items-center gap-3">
               <span className="shrink-0 flex items-center justify-center">
                 <svg className="w-5 h-5 text-teal" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H20" />
                 </svg>
               </span>
-              <div>
-                <p className="text-xs text-teal-400 uppercase tracking-wider">Monthly SIP</p>
-                <p className="text-lg font-bold text-teal font-playfair">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-teal-400 uppercase tracking-wider truncate">Monthly contribution</p>
+                <p className="text-lg font-bold text-teal font-playfair truncate" title={String(formatCurrency(summary.monthlyContribution || 0))}>
                   {formatCurrency(summary.monthlyContribution || 0)}
                 </p>
               </div>

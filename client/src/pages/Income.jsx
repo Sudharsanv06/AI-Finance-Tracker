@@ -364,7 +364,7 @@ export default function Income() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-4">
           {[
             { label: 'This Month',  value: summary?.monthlyTotal || 0, icon: <CalendarIcon className="w-5 h-5 text-teal" /> },
             { label: 'This Year',   value: summary?.yearlyTotal  || 0, icon: <CalendarIcon className="w-5 h-5 text-teal" /> },
@@ -377,7 +377,7 @@ export default function Income() {
                   {s.label}
                 </span>
               </div>
-              <p className="text-2xl font-bold text-teal font-playfair">
+              <p className="text-lg xs:text-xl sm:text-2xl font-bold text-teal font-playfair truncate" title={String(formatCurrency(s.value))}>
                 {formatCurrency(s.value)}
               </p>
             </div>
@@ -411,14 +411,14 @@ export default function Income() {
         {summary?.bySource && Object.keys(summary.bySource).length > 0 && (
           <div className="card p-6">
             <h2 className="section-title mb-4">By Source</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3">
               {Object.entries(summary.bySource).map(([source, amount]) => (
                 <div key={source}
                   className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
                   <span className={`w-3 h-3 rounded-full shrink-0 ${getSourceColor(source)}`} />
-                  <div>
-                    <p className="text-xs text-teal-400 font-medium">{source}</p>
-                    <p className="text-sm font-bold text-teal">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-teal-400 font-medium truncate">{source}</p>
+                    <p className="text-sm font-bold text-teal truncate" title={String(formatCurrency(amount))}>
                       {formatCurrency(amount)}
                     </p>
                   </div>
@@ -482,7 +482,7 @@ export default function Income() {
                     <tr className="border-b border-teal-100 bg-teal-50/50">
                       {['Date','Source','Description','Member','Amount','Recurring',''].map((h) => (
                         <th key={h}
-                          className="px-4 py-3 text-xs font-semibold text-teal-500 uppercase tracking-wider whitespace-nowrap">
+                          className="px-2 py-2.5 sm:px-4 sm:py-3 text-[10px] sm:text-xs font-semibold text-teal-500 uppercase tracking-wider whitespace-nowrap">
                           {h}
                         </th>
                       ))}
@@ -492,33 +492,33 @@ export default function Income() {
                     {incomes.map((inc) => (
                       <tr key={inc._id}
                         className="hover:bg-teal-50/30 transition-colors group">
-                        <td className="px-4 py-3 text-sm text-teal-600 whitespace-nowrap">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-teal-600 whitespace-nowrap">
                           {formatDate(inc.date)}
                         </td>
-                        <td className="px-4 py-3 flex items-center gap-2">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-teal">
                             <span className="text-teal shrink-0">{SOURCE_ICONS[inc.source] || SOURCE_ICONS.Other}</span>
-                            <span>{inc.source}</span>
+                            <span className="truncate max-w-[80px] sm:max-w-none">{inc.source}</span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-teal-500">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-teal-500 truncate max-w-[120px] sm:max-w-none" title={inc.description}>
                           {inc.description || '—'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-teal-500">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-teal-500 truncate max-w-[100px] sm:max-w-none">
                           {inc.familyMember?.name || '—'}
                         </td>
-                        <td className="px-4 py-3 text-sm font-bold text-teal whitespace-nowrap">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-teal whitespace-nowrap">
                           {formatCurrency(inc.amount)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs">
                           {inc.isRecurring ? (
-                            <span className="badge badge-active text-xs">
+                            <span className="badge badge-active text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2.5 sm:py-1">
                               {inc.frequency}
                             </span>
                           ) : (
-                            <span className="text-xs text-teal-300">One-time</span>
+                            <span className="text-[10px] sm:text-xs text-teal-300">One-time</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2">
+                        <td className="px-2 py-2.5 sm:px-4 sm:py-3">
+                          <div className="flex gap-1.5 sm:gap-2">
                             <button
                               onClick={() => { setEditingIncome(inc); setShowModal(true); }}
                               className="text-teal-300 hover:text-teal transition-colors text-sm">

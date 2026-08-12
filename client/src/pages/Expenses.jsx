@@ -141,7 +141,7 @@ export default function Expenses() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
             {
               label: 'Total Amount',
@@ -194,17 +194,16 @@ export default function Expenses() {
           ].map((s) => (
             <div
               key={s.label}
-              className={`card p-4 flex items-center gap-3 ${
+              className={`card p-4 flex items-center gap-3 min-w-0 ${
                 s.highlight ? (s.isRed ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50') : ''
               }`}
             >
-              <span className="text-2xl">{s.icon}</span>
-              <div>
-                <p className="text-xs text-teal-400 uppercase
-                              tracking-wider">{s.label}</p>
-                <p className={`text-lg font-bold font-playfair ${
+              <span className="text-2xl shrink-0">{s.icon}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-teal-400 uppercase tracking-wider truncate">{s.label}</p>
+                <p className={`text-base sm:text-lg font-bold font-playfair truncate ${
                   s.highlight ? (s.isRed ? 'text-red-600' : 'text-amber-600') : 'text-teal'
-                }`}>
+                }`} title={String(s.value)}>
                   {s.value}
                 </p>
               </div>

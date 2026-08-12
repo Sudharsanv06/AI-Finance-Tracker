@@ -498,7 +498,7 @@ export default function Bills() {
 
         {/* Summary */}
         {summary && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-4">
             {[
               { label: 'Monthly Total',      value: formatCurrency(summary.totalMonthly),    icon: <WalletIcon /> },
               { label: 'Unpaid This Month',  value: summary.unpaidThisMonth,                 icon: <ClockIcon />,
@@ -514,9 +514,9 @@ export default function Bills() {
                     {s.label}
                   </span>
                 </div>
-                <p className={`text-2xl font-bold font-playfair ${
+                <p className={`text-lg xs:text-xl sm:text-2xl font-bold font-playfair truncate ${
                   s.highlight ? 'text-amber-600' : 'text-teal'
-                }`}>
+                }`} title={String(s.value)}>
                   {s.value}
                 </p>
               </div>

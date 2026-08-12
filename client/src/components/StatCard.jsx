@@ -35,9 +35,9 @@ export default function StatCard({
       </div>
 
       {/* Value */}
-      <p className={`text-2xl font-bold font-playfair mb-1 ${
+      <p className={`text-lg xs:text-xl sm:text-2xl font-bold font-playfair mb-1 truncate ${
         highlight ? 'text-red-600' : 'text-teal'
-      }`}>
+      }`} title={String(value)}>
         {value}
       </p>
 

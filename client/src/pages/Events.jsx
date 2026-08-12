@@ -150,7 +150,7 @@ export default function Events() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-3 gap-3">
           {[
             { label: 'Total Events',  value: events.length,          icon: <CalendarIcon /> },
             { label: 'Total Budget',  value: formatCurrency(totalBudget), icon: <WalletIcon /> },
@@ -158,12 +158,10 @@ export default function Events() {
           ].map((s) => (
             <div key={s.label}
                  className="card p-4 flex items-center gap-3">
-              <span>{s.icon}</span>
-              <div>
-                <p className="text-xs text-teal-400 uppercase
-                              tracking-wider">{s.label}</p>
-                <p className="text-lg font-bold text-teal
-                              font-playfair">{s.value}</p>
+              <span className="shrink-0">{s.icon}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-teal-400 uppercase tracking-wider truncate">{s.label}</p>
+                <p className="text-sm sm:text-lg font-bold text-teal font-playfair truncate" title={String(s.value)}>{s.value}</p>
               </div>
             </div>
           ))}

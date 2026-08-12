@@ -368,12 +368,12 @@ export default function Family() {
         {/* Family Summary */}
         <div className="card p-6">
           <h2 className="section-title mb-4">Family Financial Overview</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-teal-50 rounded-xl p-4 text-center">
               <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">
                 Family Members
               </p>
-              <p className="text-2xl font-bold text-teal font-playfair">
+              <p className="text-lg xs:text-xl sm:text-2xl font-bold text-teal font-playfair truncate">
                 {members.length}
               </p>
             </div>
@@ -381,7 +381,7 @@ export default function Family() {
               <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">
                 My Income ({MONTHS[selectedMonth - 1]} {selectedYear})
               </p>
-              <p className="text-2xl font-bold text-teal font-playfair">
+              <p className="text-lg xs:text-xl sm:text-2xl font-bold text-teal font-playfair truncate" title={String(formatCurrency(myIncome))}>
                 {formatCurrency(myIncome)}
               </p>
             </div>
@@ -389,7 +389,7 @@ export default function Family() {
               <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">
                 Combined Income ({MONTHS[selectedMonth - 1]} {selectedYear})
               </p>
-              <p className="text-2xl font-bold text-teal font-playfair">
+              <p className="text-lg xs:text-xl sm:text-2xl font-bold text-teal font-playfair truncate" title={String(formatCurrency(totalFamilyIncome))}>
                 {formatCurrency(totalFamilyIncome)}
               </p>
             </div>

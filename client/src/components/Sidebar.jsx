@@ -200,7 +200,10 @@ export default function Sidebar() {
   return (
     <>
       {/* ── Mobile Top Header ───────────────────────────────────── */}
-      <div className="md:hidden sticky top-0 z-40 flex items-center justify-between bg-cream border-b border-teal-100/60 px-4 py-3 h-16 w-full shadow-teal-xs">
+      <div 
+        className="md:hidden sticky top-0 z-40 flex items-center justify-between bg-cream border-b border-teal-100/60 px-4 pb-3 w-full shadow-teal-xs"
+        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+      >
         <button
           onClick={() => setIsOpen(true)}
           className="p-2 rounded-xl text-teal hover:bg-teal-50 transition-colors"
@@ -238,14 +241,14 @@ export default function Sidebar() {
       {/* ── Mobile Drawer Backdrop ──────────────────────────────── */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/40 z-[60] md:hidden transition-opacity"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* ── Mobile Drawer Panel ─────────────────────────────────── */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 w-64 z-50 md:hidden transform transition-transform duration-300 ease-out shadow-teal-lg ${
+        className={`fixed top-0 bottom-0 left-0 w-64 z-[70] md:hidden transform transition-transform duration-300 ease-out shadow-teal-lg ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

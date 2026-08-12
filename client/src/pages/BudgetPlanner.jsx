@@ -479,17 +479,17 @@ export default function BudgetPlanner() {
                 style={{ width: `${totalPct}%` }}
               />
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-1 xs:grid-cols-3 gap-4 text-center">
               {[
                 { label: 'Total Limit',  value: summary.totalLimit,                                 icon: <WalletIcon /> },
                 { label: 'Total Spent',  value: summary.totalSpent,                                 icon: <ReceiptIcon /> },
                 { label: 'Remaining',    value: Math.max(0, summary.totalLimit - summary.totalSpent), icon: <CheckIcon /> },
               ].map((s) => (
                 <div key={s.label}>
-                  <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5">
+                  <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5 truncate">
                     {s.icon} <span>{s.label}</span>
                   </p>
-                  <p className="text-lg font-bold text-teal font-playfair">
+                  <p className="text-sm xs:text-base sm:text-lg font-bold text-teal font-playfair truncate" title={String(formatCurrency(s.value))}>
                     {formatCurrency(s.value)}
                   </p>
                 </div>

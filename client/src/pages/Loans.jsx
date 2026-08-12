@@ -618,25 +618,25 @@ function LoanCard({ loan, onEdit, onDelete, onPayment }) {
 
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="bg-teal-50 rounded-lg p-2 text-center">
-          <p className="text-teal-400 mb-0.5">Principal</p>
-          <p className="font-bold text-teal text-[11px]">
+        <div className="bg-teal-50 rounded-lg p-2 text-center min-w-0">
+          <p className="text-teal-400 mb-0.5 truncate">Principal</p>
+          <p className="font-bold text-teal text-[10px] xs:text-[11px] truncate" title={String(formatCurrency(loan.principal))}>
             {formatCurrency(loan.principal)}
           </p>
         </div>
-        <div className="bg-teal-50 rounded-lg p-2 text-center">
-          <p className="text-teal-400 mb-0.5">Paid</p>
-          <p className="font-bold text-green-600 text-[11px]">
+        <div className="bg-teal-50 rounded-lg p-2 text-center min-w-0">
+          <p className="text-teal-400 mb-0.5 truncate">Paid</p>
+          <p className="font-bold text-green-600 text-[10px] xs:text-[11px] truncate" title={String(formatCurrency(loan.totalPaid || 0))}>
             {formatCurrency(loan.totalPaid || 0)}
           </p>
         </div>
-        <div className={`rounded-lg p-2 text-center ${
+        <div className={`rounded-lg p-2 text-center min-w-0 ${
           remaining > 0 ? 'bg-red-50' : 'bg-green-50'
         }`}>
-          <p className="text-teal-400 mb-0.5">Remaining</p>
-          <p className={`font-bold text-[11px] ${
+          <p className="text-teal-400 mb-0.5 truncate">Remaining</p>
+          <p className={`font-bold text-[10px] xs:text-[11px] truncate ${
             remaining > 0 ? 'text-red-600' : 'text-green-600'
-          }`}>
+          }`} title={String(formatCurrency(remaining))}>
             {formatCurrency(remaining)}
           </p>
         </div>
@@ -795,7 +795,7 @@ export default function Loans() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Total Borrowed',  value: summary?.totalTaken          || 0, icon: <ArrowDownIcon className="w-5 h-5 text-red-600" />, red: true  },
             { label: 'Total Lent',      value: summary?.totalGiven          || 0, icon: <ArrowUpIcon className="w-5 h-5 text-green-700" />, red: false },
@@ -810,9 +810,9 @@ export default function Loans() {
                   {s.label}
                 </span>
               </div>
-              <p className={`text-2xl font-bold font-playfair ${
+              <p className={`text-lg xs:text-xl sm:text-2xl font-bold font-playfair truncate ${
                 s.red && s.value > 0 ? 'text-red-600' : 'text-teal'
-              }`}>
+              }`} title={String(formatCurrency(s.value))}>
                 {formatCurrency(s.value)}
               </p>
             </div>
@@ -823,17 +823,17 @@ export default function Loans() {
         {(summary?.monthlyEMI || 0) > 0 && (
           <div className="card p-5 flex items-center gap-4 border-amber-200 bg-amber-50/30">
             <CalendarIcon className="w-6 h-6 text-amber-600" />
-            <div>
-              <p className="text-sm font-semibold text-teal-600">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-teal-600 truncate">
                 Total Monthly EMI Obligation
               </p>
-              <p className="text-2xl font-bold text-teal font-playfair">
+              <p className="text-lg xs:text-xl sm:text-2xl font-bold text-teal font-playfair truncate" title={String(formatCurrency(summary.monthlyEMI))}>
                 {formatCurrency(summary.monthlyEMI)}
               </p>
             </div>
-            <div className="ml-auto text-right">
+            <div className="ml-auto text-right shrink-0">
               <p className="text-xs text-teal-400">Active Loans</p>
-              <p className="text-xl font-bold text-teal">
+              <p className="text-lg sm:text-xl font-bold text-teal">
                 {summary?.counts?.active || 0}
               </p>
             </div>

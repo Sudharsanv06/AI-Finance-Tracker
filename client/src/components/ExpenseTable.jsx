@@ -171,7 +171,7 @@ export default function ExpenseTable({
                   'Category','Amount','Status & Actions',''].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-xs font-semibold
+                    className="px-2 py-2.5 sm:px-4 sm:py-3 text-[10px] sm:text-xs font-semibold
                                text-teal-500 uppercase tracking-wider
                                whitespace-nowrap"
                   >
@@ -196,50 +196,50 @@ export default function ExpenseTable({
                                cursor-pointer group"
                   >
                     {/* Date */}
-                    <td className="px-4 py-3 text-sm text-teal-600
+                    <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-teal-600
                                    whitespace-nowrap">
                       {formatDate(expense.date)}
                     </td>
 
                     {/* Description */}
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-teal
+                    <td className="px-2 py-2.5 sm:px-4 sm:py-3">
+                      <p className="text-xs sm:text-sm font-semibold text-teal
                                     group-hover:text-teal-600
                                     transition-colors">
                         {truncate(expense.description, 35)}
                       </p>
                       {expense.notes && (
-                        <p className="text-xs text-teal-400 mt-0.5">
+                        <p className="text-[10px] sm:text-xs text-teal-400 mt-0.5">
                           {truncate(expense.notes, 30)}
                         </p>
                       )}
                     </td>
 
                     {/* Event */}
-                    <td className="px-4 py-3 text-sm text-teal-500
+                    <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-teal-500
                                    whitespace-nowrap">
                       {truncate(expense.eventId?.name || '—', 20)}
                     </td>
 
                     {/* Category */}
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-medium px-2 py-1
+                    <td className="px-2 py-2.5 sm:px-4 sm:py-3">
+                      <span className="text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1
                                        rounded-lg bg-teal-50
-                                       text-teal border border-teal-100 flex items-center gap-1.5 w-fit">
-                        <span>{CATEGORY_ICONS[expense.category] || CATEGORY_ICONS.Others}</span>
-                        <span>{expense.category}</span>
+                                       text-teal border border-teal-100 flex items-center gap-1 sm:gap-1.5 w-fit">
+                        <span className="shrink-0">{CATEGORY_ICONS[expense.category] || CATEGORY_ICONS.Others}</span>
+                        <span className="truncate max-w-[80px] sm:max-w-none">{expense.category}</span>
                       </span>
                     </td>
 
                     {/* Amount */}
-                    <td className="px-4 py-3 text-sm font-bold
+                    <td className="px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold
                                    text-teal whitespace-nowrap">
                       {formatCurrency(expense.amount)}
                     </td>
 
                     {/* Approval Actions */}
                     <td
-                      className="px-4 py-3"
+                      className="px-2 py-2.5 sm:px-4 sm:py-3"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <ApprovalActions
@@ -251,10 +251,10 @@ export default function ExpenseTable({
 
                     {/* Edit / Delete */}
                     <td
-                      className="px-4 py-3"
+                      className="px-2 py-2.5 sm:px-4 sm:py-3"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <button
                           onClick={() => onEdit && onEdit(expense)}
                           className="text-teal-300 hover:text-teal transition-colors text-sm"
