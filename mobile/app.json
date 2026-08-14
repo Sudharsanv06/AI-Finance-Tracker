@@ -20,6 +20,7 @@
       "versionCode": 2
     },
     "extra": {
+      "apiUrl": "http://10.1.110.23:5000/api",
       "eas": {
         "projectId": "bb0ca3c3-ee79-44e2-965c-f7a7c7b1e853"
       }

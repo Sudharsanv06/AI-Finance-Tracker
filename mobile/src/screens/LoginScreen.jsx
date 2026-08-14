@@ -20,23 +20,17 @@ export default function LoginScreen({ navigation }) {
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err) {
-      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        Alert.alert(
-          'Server Starting Up',
-          'The server is waking up from sleep mode. Please wait a few seconds and try again.',
-          [{ text: 'OK' }]
-        );
-      } else if (!err.response) {
-        Alert.alert(
-          'Connection Error',
-          'Could not reach the server. Check your internet connection and try again.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Login Failed',
-          err.response?.data?.message || 'Invalid email or password'
-        );
+      let msg = 'Invalid email or password';
+      if (err.response?.data?.message && typeof err.response.data.message === 'string') {
+        msg = err.response.data.message;
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        msg = 'Connection timeout. The server took too long to respond.';
+      } else if (err.message?.includes('Network Error') || err.code === 'ERR_NETWORK' || !err.response) {
+        msg = `Could not reach the server at ${err.config?.baseURL || 'backend URL'}. Ensure the backend server is running and accessible.`;
+      } else if (err.message) {
+        msg = err.message;
       }
+      Alert.alert('Login Failed', msg);
     } finally {
       setLoading(false);
     }

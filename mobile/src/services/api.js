@@ -1,8 +1,26 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const getDefaultApiUrl = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  if (Constants.expoConfig?.extra?.apiUrl) {
+    return Constants.expoConfig.extra.apiUrl;
+  }
+  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:5000/api`;
+    }
+  }
+  return 'http://10.1.110.23:5000/api';
+};
 
 const api = axios.create({
-  baseURL: 'https://paisa-pulse-server.onrender.com/api',
+  baseURL: getDefaultApiUrl(),
   headers: { 
     'Content-Type': 'application/json',
     'x-client-type': 'mobile',
@@ -14,6 +32,10 @@ const api = axios.create({
 
 // Attach token and disable HTTP caching for GET requests on mobile
 api.interceptors.request.use(async (config) => {
+  const customUrl = await AsyncStorage.getItem('custom_server_url');
+  if (customUrl) {
+    config.baseURL = customUrl;
+  }
   const token = await AsyncStorage.getItem('token');
   const userStr = await AsyncStorage.getItem('user');
   let userId = '';

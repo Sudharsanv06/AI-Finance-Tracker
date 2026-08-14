@@ -25,9 +25,17 @@ export default function RegisterScreen({ navigation }) {
     try {
       await register({ name: name.trim(), email: email.trim().toLowerCase(), password, role });
     } catch (err) {
-      Alert.alert('Registration Failed',
-        err.response?.data?.message || 'Something went wrong'
-      );
+      let msg = 'Something went wrong. Please try again.';
+      if (err.response?.data?.message && typeof err.response.data.message === 'string') {
+        msg = err.response.data.message;
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        msg = 'Connection timeout. The server took too long to respond.';
+      } else if (err.message?.includes('Network Error') || err.code === 'ERR_NETWORK' || !err.response) {
+        msg = `Could not reach the server at ${err.config?.baseURL || 'backend URL'}. Ensure the backend server is running and accessible over Wi-Fi/network.`;
+      } else if (err.message) {
+        msg = err.message;
+      }
+      Alert.alert('Registration Failed', msg);
     } finally {
       setLoading(false);
     }
