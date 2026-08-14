@@ -119,12 +119,12 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#0058be', // Paisa Pulse core primary Vibrant Blue
+    backgroundColor: COLORS.primary, // Deep Teal #004643
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
     top: -14,
-    shadowColor: '#0058be',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 8,

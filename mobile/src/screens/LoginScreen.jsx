@@ -1,5 +1,5 @@
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Image, Platform,
   StyleSheet, ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { useState } from 'react';
@@ -48,13 +48,21 @@ export default function LoginScreen({ navigation }) {
       contentContainerStyle={s.content}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Background Decorative Accent Circles */}
+      <View style={s.bgDecorationTop} />
+      <View style={s.bgDecorationBottom} />
+
       {/* Logo */}
       <View style={s.logoWrap}>
         <View style={s.logoCircle}>
-          <Text style={s.logoText}>P</Text>
+          <Image
+            source={require('../../assets/adaptive-icon.png')}
+            style={s.logoImg}
+            resizeMode="contain"
+          />
         </View>
         <Text style={s.appName}>Paisa Pulse</Text>
-        <Text style={s.appSub}>Your financial pulse, tracked</Text>
+        <Text style={s.appSub}>Smart Personal & Event Finance Manager</Text>
       </View>
 
       {/* Card */}
@@ -68,7 +76,7 @@ export default function LoginScreen({ navigation }) {
           value={email}
           onChangeText={setEmail}
           placeholder="you@example.com"
-          placeholderTextColor={COLORS.teal100}
+          placeholderTextColor={COLORS.teal200}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -80,7 +88,7 @@ export default function LoginScreen({ navigation }) {
           value={password}
           onChangeText={setPassword}
           placeholder="Your password"
-          placeholderTextColor={COLORS.teal100}
+          placeholderTextColor={COLORS.teal200}
           secureTextEntry
         />
 
@@ -91,7 +99,7 @@ export default function LoginScreen({ navigation }) {
           activeOpacity={0.85}
         >
           {loading
-            ? <ActivityIndicator color={COLORS.cream} />
+            ? <ActivityIndicator color={COLORS.white} />
             : <Text style={s.btnText}>Sign In →</Text>
           }
         </TouchableOpacity>
@@ -109,30 +117,44 @@ export default function LoginScreen({ navigation }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  content:   { flexGrow: 1, justifyContent: 'center', padding: 20 },
-  logoWrap:  { alignItems: 'center', marginBottom: 32 },
+  content:   { flexGrow: 1, justifyContent: 'center', padding: 20, position: 'relative' },
+  bgDecorationTop: {
+    position: 'absolute', top: -80, right: -80, width: 220, height: 220,
+    borderRadius: 110, backgroundColor: 'rgba(0, 70, 67, 0.05)',
+  },
+  bgDecorationBottom: {
+    position: 'absolute', bottom: -80, left: -80, width: 220, height: 220,
+    borderRadius: 110, backgroundColor: 'rgba(0, 70, 67, 0.05)',
+  },
+  logoWrap:  { alignItems: 'center', marginBottom: 28 },
   logoCircle:{
     width: 64, height: 64, borderRadius: 16,
     backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 12, overflow: 'hidden',
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 8, elevation: 6,
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
   },
-  logoText:  { color: COLORS.white, fontSize: 28, fontWeight: '800' },
-  appName:   { fontSize: 28, fontWeight: '700', color: COLORS.onSurface },
-  appSub:    { fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 4 },
+  logoImg:   { width: 54, height: 54 },
+  appName:   {
+    fontSize: 30, fontWeight: '700', color: COLORS.onSurface,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  appSub:    { fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 4, textAlign: 'center' },
   card: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.03, shadowRadius: 16, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)',
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 5,
+    borderWidth: 1, borderColor: 'rgba(179, 208, 206, 0.4)',
   },
-  title:    { fontSize: 22, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4 },
+  title:    {
+    fontSize: 22, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
   subtitle: { fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 24 },
   label: {
     fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant,
@@ -140,16 +162,16 @@ const s = StyleSheet.create({
   },
   input: {
     borderWidth: 1, borderColor: COLORS.outlineVariant,
-    borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 14, color: COLORS.onSurface, backgroundColor: COLORS.background,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 14, color: COLORS.onSurface, backgroundColor: COLORS.white,
   },
   btn: {
-    backgroundColor: COLORS.primary, borderRadius: 8,
+    backgroundColor: COLORS.primary, borderRadius: 12,
     paddingVertical: 16, alignItems: 'center',
     marginTop: 24,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+    shadowOpacity: 0.18, shadowRadius: 8, elevation: 4,
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },

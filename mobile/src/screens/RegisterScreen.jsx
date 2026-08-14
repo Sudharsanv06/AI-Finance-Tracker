@@ -1,16 +1,10 @@
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Image, Platform,
   StyleSheet, ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { useState } from 'react';
 import { useAuth }  from '../context/AuthContext';
 import { COLORS }   from '../utils/helpers';
-
-const ROLES = [
-  { val: 'Organizer',    label: 'Organizer',    icon: 'flag-outline', desc: 'Create events' },
-  { val: 'Approver',     label: 'Approver',     icon: 'checkmark-circle-outline', desc: 'Approve expenses' },
-  { val: 'FinanceAdmin', label: 'Finance Admin', icon: 'briefcase-outline', desc: 'Full access' },
-];
 
 export default function RegisterScreen({ navigation }) {
   const { register }      = useAuth();
@@ -45,12 +39,21 @@ export default function RegisterScreen({ navigation }) {
       contentContainerStyle={s.content}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Background Decorative Accent Circles */}
+      <View style={s.bgDecorationTop} />
+      <View style={s.bgDecorationBottom} />
+
       {/* Logo */}
       <View style={s.logoWrap}>
         <View style={s.logoCircle}>
-          <Text style={s.logoText}>P</Text>
+          <Image
+            source={require('../../assets/adaptive-icon.png')}
+            style={s.logoImg}
+            resizeMode="contain"
+          />
         </View>
         <Text style={s.appName}>Paisa Pulse</Text>
+        <Text style={s.appSub}>Smart Personal & Event Finance Manager</Text>
       </View>
 
       <View style={s.card}>
@@ -59,18 +62,17 @@ export default function RegisterScreen({ navigation }) {
 
         <Text style={s.label}>FULL NAME</Text>
         <TextInput style={s.input} value={name} onChangeText={setName}
-          placeholder="Your full name" placeholderTextColor={COLORS.teal100}
+          placeholder="Your full name" placeholderTextColor={COLORS.teal200}
           autoCapitalize="words" />
 
         <Text style={s.label}>EMAIL ADDRESS</Text>
         <TextInput style={s.input} value={email} onChangeText={setEmail}
-          placeholder="you@example.com" placeholderTextColor={COLORS.teal100}
+          placeholder="you@example.com" placeholderTextColor={COLORS.teal200}
           keyboardType="email-address" autoCapitalize="none" />
-
 
         <Text style={s.label}>PASSWORD</Text>
         <TextInput style={s.input} value={password} onChangeText={setPassword}
-          placeholder="Min 6 characters" placeholderTextColor={COLORS.teal100}
+          placeholder="Min 6 characters" placeholderTextColor={COLORS.teal200}
           secureTextEntry />
 
         <Text style={s.label}>CONFIRM PASSWORD</Text>
@@ -82,7 +84,7 @@ export default function RegisterScreen({ navigation }) {
             },
           ]}
           value={confirmPassword} onChangeText={setConfirmPassword}
-          placeholder="Re-enter password" placeholderTextColor={COLORS.teal100}
+          placeholder="Re-enter password" placeholderTextColor={COLORS.teal200}
           secureTextEntry />
 
         <TouchableOpacity
@@ -92,7 +94,7 @@ export default function RegisterScreen({ navigation }) {
           activeOpacity={0.85}
         >
           {loading
-            ? <ActivityIndicator color={COLORS.cream} />
+            ? <ActivityIndicator color={COLORS.white} />
             : <Text style={s.btnText}>Create Account →</Text>
           }
         </TouchableOpacity>
@@ -110,23 +112,40 @@ export default function RegisterScreen({ navigation }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  content:   { flexGrow: 1, padding: 20, paddingTop: 60 },
+  content:   { flexGrow: 1, padding: 20, paddingTop: 40, justifyContent: 'center', position: 'relative' },
+  bgDecorationTop: {
+    position: 'absolute', top: -80, right: -80, width: 220, height: 220,
+    borderRadius: 110, backgroundColor: 'rgba(0, 70, 67, 0.05)',
+  },
+  bgDecorationBottom: {
+    position: 'absolute', bottom: -80, left: -80, width: 220, height: 220,
+    borderRadius: 110, backgroundColor: 'rgba(0, 70, 67, 0.05)',
+  },
   logoWrap:  { alignItems: 'center', marginBottom: 24 },
   logoCircle:{
-    width: 56, height: 56, borderRadius: 16,
+    width: 60, height: 60, borderRadius: 16,
     backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+    overflow: 'hidden', shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
   },
-  logoText: { color: COLORS.white, fontSize: 24, fontWeight: '800' },
-  appName:  { fontSize: 24, fontWeight: '700', color: COLORS.onSurface },
+  logoImg:  { width: 50, height: 50 },
+  appName:  {
+    fontSize: 28, fontWeight: '700', color: COLORS.onSurface,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  appSub:   { fontSize: 13, color: COLORS.onSurfaceVariant, marginTop: 4, textAlign: 'center' },
   card: {
     backgroundColor: COLORS.white, borderRadius: 16, padding: 24,
-    shadowColor: '#000',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.03, shadowRadius: 16, elevation: 4,
-    borderWidth: 1, borderColor: 'rgba(194, 198, 214, 0.2)',
+    shadowOpacity: 0.08, shadowRadius: 16, elevation: 5,
+    borderWidth: 1, borderColor: 'rgba(179, 208, 206, 0.4)',
   },
-  title:    { fontSize: 20, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4 },
+  title:    {
+    fontSize: 20, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
   subtitle: { fontSize: 13, color: COLORS.onSurfaceVariant, marginBottom: 20 },
   label: {
     fontSize: 11, fontWeight: '700', color: COLORS.onSurfaceVariant,
@@ -134,28 +153,15 @@ const s = StyleSheet.create({
   },
   input: {
     borderWidth: 1, borderColor: COLORS.outlineVariant,
-    borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 14, color: COLORS.onSurface, backgroundColor: COLORS.background,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 14, color: COLORS.onSurface, backgroundColor: COLORS.white,
   },
-  roleRow: { flexDirection: 'row', gap: 8 },
-  roleCard: {
-    flex: 1, borderWidth: 1, borderColor: COLORS.outlineVariant,
-    borderRadius: 8, padding: 10, alignItems: 'center',
-    backgroundColor: COLORS.white,
-  },
-  roleCardActive: {
-    borderColor: COLORS.primary, backgroundColor: COLORS.surfaceContainerLow,
-  },
-  roleIcon:  { fontSize: 22, marginBottom: 4 },
-  roleLabel: { fontSize: 10, fontWeight: '700', color: COLORS.onSurfaceVariant, textAlign: 'center' },
-  roleLabelActive: { color: COLORS.primary },
-  roleDesc:  { fontSize: 9, color: COLORS.onSurfaceVariant, textAlign: 'center', marginTop: 2 },
   btn: {
-    backgroundColor: COLORS.primary, borderRadius: 8,
+    backgroundColor: COLORS.primary, borderRadius: 12,
     paddingVertical: 16, alignItems: 'center', marginTop: 20,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+    shadowOpacity: 0.18, shadowRadius: 8, elevation: 4,
   },
   btnDisabled: { opacity: 0.6 },
   btnText:  { color: COLORS.white, fontSize: 15, fontWeight: '700' },

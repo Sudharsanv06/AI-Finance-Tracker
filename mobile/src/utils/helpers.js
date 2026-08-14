@@ -19,36 +19,39 @@ export const getInitials = (name) => {
 };
 
 export const COLORS = {
-  // Legacy mappings mapped to new design system colors
-  teal:       '#0058be', // Primary Vibrant Blue
-  tealLight:  '#2170e4', // Primary Container Blue
-  teal50:     '#eff4ff', // Surface Container Low
-  teal100:    '#d3e4fe', // Surface Container Highest
-  cream:      '#f8f9ff', // Base Canvas background
-  creamDark:  '#e5eeff', // Surface Container
+  // Brand Deep Teal & Warm Cream palette (matching web client)
+  teal:       '#004643', // Primary Deep Teal
+  tealLight:  '#1A706B', // Medium Teal
+  teal50:     '#E6F0EF', // Surface Container Low
+  teal100:    '#B3D0CE', // Outline Variant
+  teal200:    '#80B0AD', // Outline
+  teal300:    '#4D908C', // Text Secondary
+  teal400:    '#1A706B', // Text Subtitle
+  cream:      '#F0EDE5', // Base Canvas Warm Cream
+  creamDark:  '#E5E0D5', // Surface Container Warm Cream Dark
   white:      '#ffffff', // Surface Container Lowest
   red:        '#ba1a1a', // Error red
   red50:      '#ffdad6', // Error container
-  green:      '#006c49', // Secondary emerald green
-  green50:    '#6cf8bb', // Secondary container
-  amber:      '#825100', // Tertiary amber
-  amber50:    '#ffddb8', // Tertiary container
-  gray:       '#727785', // Outline
-  gray100:    '#c2c6d6', // Outline variant
+  green:      '#006c49', // Emerald green
+  green50:    '#e6f4ea', // Emerald container
+  amber:      '#825100', // Amber
+  amber50:    '#ffddb8', // Amber container
+  gray:       '#4D908C', // Outline
+  gray100:    '#B3D0CE', // Outline variant
 
-  // New design system semantic tokens
-  primary: '#0058be',
-  primaryContainer: '#2170e4',
+  // Semantic design system tokens
+  primary: '#004643',
+  primaryContainer: '#003D3A',
   secondary: '#006c49',
-  secondaryContainer: '#6cf8bb',
+  secondaryContainer: '#e6f4ea',
   tertiary: '#825100',
-  tertiaryContainer: '#a36700',
-  background: '#f8f9ff',
-  onSurface: '#0b1c30',
-  onSurfaceVariant: '#424754',
-  outline: '#727785',
-  outlineVariant: '#c2c6d6',
-  surfaceVariant: '#d3e4fe',
-  surfaceContainerLow: '#eff4ff',
+  tertiaryContainer: '#ffddb8',
+  background: '#F0EDE5',
+  onSurface: '#004643',
+  onSurfaceVariant: '#1A706B',
+  outline: '#80B0AD',
+  outlineVariant: '#B3D0CE',
+  surfaceVariant: '#B3D0CE',
+  surfaceContainerLow: '#E6F0EF',
   surfaceContainerLowest: '#ffffff',
 };
