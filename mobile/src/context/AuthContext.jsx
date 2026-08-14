@@ -26,7 +26,12 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await authService.login(email, password);
-    const { token: t, user: u } = res.data;
+    const payload = res?.data || res;
+    const t = payload?.token;
+    const u = payload?.user;
+    if (!t || !u) {
+      throw new Error(res?.message || 'Login failed: Invalid token or user data received from server');
+    }
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
@@ -40,7 +45,12 @@ export function AuthProvider({ children }) {
 
   const register = async (data) => {
     const res = await authService.register(data);
-    const { token: t, user: u } = res.data;
+    const payload = res?.data || res;
+    const t = payload?.token;
+    const u = payload?.user;
+    if (!t || !u) {
+      throw new Error(res?.message || 'Registration failed: Invalid token or user data received from server');
+    }
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');

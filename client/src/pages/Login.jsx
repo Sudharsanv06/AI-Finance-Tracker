@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/adaptive-icon.png';
@@ -13,8 +13,13 @@ export default function Login() {
   const [error,    setError]    = useState('');
 
   // Already logged in → redirect
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
   if (isAuthenticated) {
-    navigate('/dashboard');
     return null;
   }
 

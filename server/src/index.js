@@ -47,8 +47,24 @@ app.use(xss());
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
+
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'https://ai-finance-tracker-alpha-lilac.vercel.app',
+].filter(Boolean);
+
 app.use(cors({
-  origin:      process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow mobile apps (no origin header), Postman, or specified origins
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(null, true); // Permissive for mobile API access
+  },
   credentials: true,
 }));
 
