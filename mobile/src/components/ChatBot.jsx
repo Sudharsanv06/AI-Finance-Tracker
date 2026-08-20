@@ -280,7 +280,7 @@ const s = StyleSheet.create({
     width: FAB_SIZE,
     height: FAB_SIZE,
     borderRadius: FAB_SIZE / 2,
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0058be',
@@ -292,7 +292,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', backgroundColor: '#0058be',
+    alignItems: 'center', backgroundColor: COLORS.primary,
     paddingHorizontal: 16, paddingVertical: 14,
     paddingTop: Platform.OS === 'ios' ? 44 : 48,
   },
@@ -332,7 +332,7 @@ const s = StyleSheet.create({
     borderRadius: 16,
   },
   bubbleBot:      { backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.outlineVariant, borderBottomLeftRadius: 4 },
-  bubbleUser:     { backgroundColor: '#0058be', borderBottomRightRadius: 4 },
+  bubbleUser:     { backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
   bubbleText:     { fontSize: 14, color: COLORS.onSurface, lineHeight: 20 },
   bubbleTextUser: { color: COLORS.white },
   typingRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 8 },
@@ -356,7 +356,7 @@ const s = StyleSheet.create({
   },
   sendBtn: {
     width: 44, height: 44, borderRadius: 14,
-    backgroundColor: '#0058be', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.4 },
 });

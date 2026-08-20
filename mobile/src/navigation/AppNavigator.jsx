@@ -16,16 +16,12 @@ import AddTransactionScreen from '../screens/AddTransactionScreen';
 import BudgetPlannerScreen  from '../screens/BudgetPlannerScreen';
 import BillRemindersScreen  from '../screens/BillRemindersScreen';
 import InvestmentsScreen    from '../screens/InvestmentsScreen';
-import SettingsScreen       from '../screens/SettingsScreen';
-
-import { COLORS } from '../utils/helpers';
-
-const Stack = createNativeStackNavigator();
-const Tab   = createBottomTabNavigator();
+import FamilyScreen from '../screens/FamilyScreen';
 
 const TAB_ICONS = {
   Home:        { active: 'home',           inactive: 'home-outline' },
   Transaction: { active: 'swap-horizontal', inactive: 'swap-horizontal-outline' },
+  Family:      { active: 'people',          inactive: 'people-outline' },
   Analytics:   { active: 'stats-chart',    inactive: 'stats-chart-outline' },
   More:        { active: 'person',         inactive: 'person-outline' },
 };
@@ -82,7 +78,7 @@ function MainTabs() {
           tabBarLabel: () => null,
         }}
       />
-      <Tab.Screen name="Analytics"   component={EventsScreen}    />
+      <Tab.Screen name="Family"      component={FamilyScreen}    />
       <Tab.Screen name="More"        component={ProfileScreen}   />
     </Tab.Navigator>
   );
@@ -96,6 +92,7 @@ export default function AppNavigator() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="Main"          component={MainTabs}   />
+          <Stack.Screen name="Family"        component={FamilyScreen} />
           <Stack.Screen name="Goals"         component={GoalsScreen} />
           <Stack.Screen name="Loans"         component={LoansScreen} />
           <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />

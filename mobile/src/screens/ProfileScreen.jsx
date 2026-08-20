@@ -10,10 +10,14 @@ import { COLORS, getInitials } from '../utils/helpers';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const MENU_ITEMS = [
+  { icon: 'people-outline', label: 'Family & Shared Budget', screen: 'Family' },
+  { icon: 'wallet-outline', label: 'Income & Streams', screen: 'Income' },
+  { icon: 'stats-chart-outline', label: 'Events & Approvals', screen: 'Events' },
   { icon: 'flag-outline', label: 'Financial Goals', screen: 'Goals' },
-  { icon: 'stats-chart-outline', label: 'Budget Planner',  screen: 'BudgetPlanner' },
-  { icon: 'card-outline', label: 'Bill Reminders',  screen: 'BillReminders' },
-  { icon: 'trending-up-outline', label: 'Investments',      screen: 'Investments' },
+  { icon: 'pie-chart-outline', label: 'Budget Planner', screen: 'BudgetPlanner' },
+  { icon: 'card-outline', label: 'Bill Reminders', screen: 'BillReminders' },
+  { icon: 'trending-up-outline', label: 'Investments', screen: 'Investments' },
+  { icon: 'cash-outline', label: 'Loans & EMI Manager', screen: 'Loans' },
 ];
 
 const ROLE_CONFIG = {
@@ -150,7 +154,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content:   { padding: 16, paddingTop: 56, paddingBottom: 40 },
   profileCard: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
@@ -185,7 +189,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#0058be',
+    borderColor: COLORS.primary,
   },
   avatarText: { fontSize: 28, fontWeight: '800', color: COLORS.white },
   name:   { fontSize: 22, fontWeight: '700', color: COLORS.white, marginBottom: 4 },

@@ -47,11 +47,30 @@ export const COLORS = {
   tertiary: '#825100',
   tertiaryContainer: '#ffddb8',
   background: '#F0EDE5',
-  onSurface: '#004643',
-  onSurfaceVariant: '#1A706B',
-  outline: '#80B0AD',
-  outlineVariant: '#B3D0CE',
-  surfaceVariant: '#B3D0CE',
-  surfaceContainerLow: '#E6F0EF',
-  surfaceContainerLowest: '#ffffff',
+  // Status Badges
+  badgePendingBg: '#FEF3C7',
+  badgePendingText: '#92400E',
+  badgeApprovedBg: '#D1FAE5',
+  badgeApprovedText: '#065F46',
+  badgeRejectedBg: '#FEE2E2',
+  badgeRejectedText: '#991B1B',
+  badgePaidBg: '#E0F2FE',
+  badgePaidText: '#075985',
+};
+
+export const getStatusBadgeStyle = (status = '') => {
+  const s = status.toLowerCase();
+  if (s === 'approved' || s === 'completed' || s === 'active') {
+    return { bg: COLORS.badgeApprovedBg, text: COLORS.badgeApprovedText, label: status || 'Approved' };
+  }
+  if (s === 'pending' || s === 'due soon') {
+    return { bg: COLORS.badgePendingBg, text: COLORS.badgePendingText, label: status || 'Pending' };
+  }
+  if (s === 'rejected' || s === 'overdue' || s === 'unpaid') {
+    return { bg: COLORS.badgeRejectedBg, text: COLORS.badgeRejectedText, label: status || 'Rejected' };
+  }
+  if (s === 'paid') {
+    return { bg: COLORS.badgePaidBg, text: COLORS.badgePaidText, label: status || 'Paid' };
+  }
+  return { bg: COLORS.surfaceContainerLow, text: COLORS.onSurfaceVariant, label: status || 'General' };
 };
