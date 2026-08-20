@@ -16,7 +16,9 @@ import AddTransactionScreen from '../screens/AddTransactionScreen';
 import BudgetPlannerScreen  from '../screens/BudgetPlannerScreen';
 import BillRemindersScreen  from '../screens/BillRemindersScreen';
 import InvestmentsScreen    from '../screens/InvestmentsScreen';
-import FamilyScreen from '../screens/FamilyScreen';
+import SettingsScreen       from '../screens/SettingsScreen';
+import FamilyScreen         from '../screens/FamilyScreen';
+import { COLORS }           from '../utils/helpers';
 
 const TAB_ICONS = {
   Home:        { active: 'home',           inactive: 'home-outline' },

@@ -309,7 +309,7 @@ const s = StyleSheet.create({
   colorCircle: { width: 28, height: 28, borderRadius: 14 },
   colorCircleActive: { borderWidth: 2, borderColor: COLORS.primary },
   modalBtns: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  cancelBtn: { flex: 1, borderHeight: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: COLORS.outlineVariant },
+  cancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: COLORS.outlineVariant },
   cancelBtnText: { color: COLORS.onSurfaceVariant, fontWeight: '600' },
   saveBtn: { flex: 1, backgroundColor: COLORS.primary, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
   saveBtnText: { color: COLORS.white, fontWeight: '700' },
