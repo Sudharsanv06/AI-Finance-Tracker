@@ -20,7 +20,7 @@
       "versionCode": 2
     },
     "extra": {
-      "apiUrl": "http://10.55.124.145:5000/api",
+      "apiUrl": "https://eventfi-server.onrender.com/api",
       "eas": {
         "projectId": "bb0ca3c3-ee79-44e2-965c-f7a7c7b1e853"
       }

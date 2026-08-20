@@ -16,7 +16,7 @@ const getDefaultApiUrl = () => {
   if (Constants.expoConfig?.extra?.apiUrl) {
     return Constants.expoConfig.extra.apiUrl;
   }
-  return 'http://10.55.124.145:5000/api';
+  return 'https://eventfi-server.onrender.com/api';
 };
 
 const api = axios.create({
