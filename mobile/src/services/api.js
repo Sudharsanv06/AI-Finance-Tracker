@@ -25,7 +25,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'x-client-type': 'mobile',
   },
-  timeout: 15000,
+  timeout: 60000,
 });
 
 
