@@ -18,7 +18,7 @@ const STATUS_COLOR = {
   Pending:  { bg: 'rgba(130, 81, 0, 0.08)', text: '#825100' },
   Approved: { bg: 'rgba(0, 108, 73, 0.08)', text: '#006c49' },
   Rejected: { bg: 'rgba(186, 26, 26, 0.08)', text: '#ba1a1a' },
-  Paid:     { bg: 'rgba(0, 88, 190, 0.08)', text: '#0058be' },
+  Paid:     { bg: 'rgba(0, 70, 67, 0.08)', text: COLORS.teal },
 };
 
 const EXPENSE_CATEGORIES = [

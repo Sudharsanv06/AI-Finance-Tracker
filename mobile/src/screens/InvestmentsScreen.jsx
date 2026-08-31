@@ -27,8 +27,8 @@ const TYPE_ICONS = {
 };
 
 const PIE_COLORS = [
-  '#0058be', '#10b981', '#f59e0b', '#8b5cf6',
-  '#ec4899', '#3b82f6', '#ef4444', '#727785',
+  '#004643', '#10b981', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#1A706B', '#ef4444', '#727785',
   '#006c49', '#825100'
 ];
 
@@ -878,7 +878,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyAddBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -925,7 +925,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   submitBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',

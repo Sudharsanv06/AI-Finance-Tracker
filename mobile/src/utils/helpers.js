@@ -47,6 +47,12 @@ export const COLORS = {
   tertiary: '#825100',
   tertiaryContainer: '#ffddb8',
   background: '#F0EDE5',
+  onSurface: '#0f172a',
+  onSurfaceVariant: '#475569',
+  outline: '#94a3b8',
+  outlineVariant: '#e2e8f0',
+  surfaceContainerLow: '#f8fafc',
+  surfaceContainer: '#f1f5f9',
   // Status Badges
   badgePendingBg: '#FEF3C7',
   badgePendingText: '#92400E',

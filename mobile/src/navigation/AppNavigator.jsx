@@ -16,9 +16,13 @@ import AddTransactionScreen from '../screens/AddTransactionScreen';
 import BudgetPlannerScreen  from '../screens/BudgetPlannerScreen';
 import BillRemindersScreen  from '../screens/BillRemindersScreen';
 import InvestmentsScreen    from '../screens/InvestmentsScreen';
+import IncomeScreen         from '../screens/IncomeScreen';
 import SettingsScreen       from '../screens/SettingsScreen';
 import FamilyScreen         from '../screens/FamilyScreen';
 import { COLORS }           from '../utils/helpers';
+
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 const TAB_ICONS = {
   Home:        { active: 'home',           inactive: 'home-outline' },
@@ -101,6 +105,8 @@ export default function AppNavigator() {
           <Stack.Screen name="BudgetPlanner" component={BudgetPlannerScreen} />
           <Stack.Screen name="BillReminders" component={BillRemindersScreen} />
           <Stack.Screen name="Investments"   component={InvestmentsScreen} />
+          <Stack.Screen name="Income"        component={IncomeScreen} />
+          <Stack.Screen name="Events"        component={EventsScreen} />
           <Stack.Screen name="Settings"      component={SettingsScreen} />
         </>
       ) : (

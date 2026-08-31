@@ -114,15 +114,17 @@ export default function ChatBot() {
         .slice(-8)
         .map(m => ({ role: m.role, content: m.content }));
       const res = await api.post('/ai/chat', { message: msg, history });
+      const reply = res.data?.data?.reply || 'I processed your request, but could not generate a response. Please try again.';
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: res.data.data.reply },
+        { role: 'assistant', content: reply },
       ]);
     } catch (err) {
       console.log('Chat Error details:', err);
+      const errorText = err.response?.data?.message || 'Sorry, I am unable to connect right now. Please try again in a moment.';
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Sorry, something went wrong. Try again.' },
+        { role: 'assistant', content: errorText },
       ]);
     } finally {
       setLoading(false);
@@ -159,12 +161,6 @@ export default function ChatBot() {
         </View>
       </Animated.View>
 
-      {/* Chat Modal — no KeyboardAvoidingView needed.
-          Android's windowSoftInputMode="resize" (set in app.json)
-          automatically shrinks the Modal window when the keyboard opens,
-          which pushes the input row up above the keyboard naturally.
-          This is more reliable than any manual Keyboard listener approach
-          inside a Modal on Android. */}
       <Modal
         visible={isOpen}
         animationType="slide"
@@ -283,7 +279,7 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0058be',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -343,7 +339,7 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.white, borderRadius: 12,
     borderWidth: 1, borderColor: COLORS.outlineVariant,
   },
-  suggestText: { fontSize: 12, color: '#0058be', fontWeight: '600' },
+  suggestText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
   inputRow: {
     flexDirection: 'row', gap: 10, padding: 12,
     backgroundColor: COLORS.white, borderTopWidth: 1, borderTopColor: COLORS.outlineVariant,
@@ -352,6 +348,7 @@ const s = StyleSheet.create({
   input: {
     flex: 1, borderWidth: 1.5, borderColor: COLORS.outlineVariant, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: COLORS.onSurface,
+    backgroundColor: COLORS.white,
     maxHeight: 80,
   },
   sendBtn: {

@@ -711,7 +711,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyAddBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -759,7 +759,7 @@ const s = StyleSheet.create({
     fontStyle: 'italic',
   },
   submitBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',

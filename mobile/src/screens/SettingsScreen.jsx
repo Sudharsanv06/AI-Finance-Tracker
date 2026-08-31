@@ -291,7 +291,7 @@ const s = StyleSheet.create({
     elevation: 2,
   },
   securityBtn: {
-    backgroundColor: '#0c2240', // premium navy theme color for security settings
+    backgroundColor: COLORS.primary, // Deep Teal theme color
   },
   btnDisabled: {
     opacity: 0.6,

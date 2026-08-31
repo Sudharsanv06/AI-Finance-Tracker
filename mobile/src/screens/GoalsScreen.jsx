@@ -504,9 +504,9 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 20,
-    backgroundColor: '#0058be', // Paisa Pulse Core primary gradient
+    backgroundColor: COLORS.primary, // Deep Teal theme background
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -538,7 +538,7 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0, 88, 190, 0.05)',
+    backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -553,14 +553,14 @@ const s = StyleSheet.create({
 
   progressBar: {
     height: 8,
-    backgroundColor: '#eff4ff',
+    backgroundColor: COLORS.teal50,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.teal,
     borderRadius: 4,
   },
 

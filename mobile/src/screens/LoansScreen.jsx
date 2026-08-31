@@ -588,7 +588,7 @@ const s = StyleSheet.create({
   progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   progressLabel: { fontSize: 11, color: COLORS.onSurfaceVariant },
   progressPct: { fontSize: 11, fontWeight: '700', color: COLORS.primary },
-  progressBar: { height: 8, backgroundColor: '#eff4ff', borderRadius: 4, overflow: 'hidden' },
+  progressBar: { height: 8, backgroundColor: COLORS.teal50, borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
   statsRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
   stat: { flex: 1, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 8, padding: 8, alignItems: 'center' },

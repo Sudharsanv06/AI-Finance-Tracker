@@ -319,12 +319,33 @@ export default function BillRemindersScreen({ navigation }) {
             const isPaid = b.isPaid;
 
             const iconBg = isPaid ? 'rgba(16, 185, 129, 0.08)' : isUrgent ? 'rgba(239, 68, 68, 0.08)' : isUpcoming ? 'rgba(217, 119, 6, 0.08)' : COLORS.surfaceContainerLow;
+            const now = new Date();
+            const dueMonthIdx = (b.frequency === 'yearly' && b.dueMonth) ? b.dueMonth - 1 : now.getMonth();
+            const formattedDueDate = new Date(now.getFullYear(), dueMonthIdx, b.dueDate || 1).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
             return (
               <View key={b._id} style={[s.billCard, isUrgent && s.billCardUrgent, isUpcoming && s.billCardUpcoming]}>
                 <View style={s.billCardMain}>
-                  <View style={[s.billIcon, { backgroundColor: iconBg }]}>
-                    <Ionicons name={CATEGORY_ICONS[b.category] || 'document-text-outline'} size={20} color={COLORS.primary} />
+                  <View style={{
+                    backgroundColor: isPaid ? 'rgba(16, 185, 129, 0.12)' : 'rgba(0, 70, 67, 0.08)',
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 10,
+                    minWidth: 48,
+                    borderWidth: 1,
+                    borderColor: isPaid ? 'rgba(16, 185, 129, 0.2)' : COLORS.outlineVariant,
+                  }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: COLORS.primary }}>{b.dueDate}</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: COLORS.onSurfaceVariant, textTransform: 'uppercase' }}>
+                      {MONTH_NAMES_SHORT[dueMonthIdx]}
+                    </Text>
+                  </View>
+
+                  <View style={[s.billIcon, { backgroundColor: iconBg, marginRight: 10 }]}>
+                    <Ionicons name={CATEGORY_ICONS[b.category] || 'document-text-outline'} size={18} color={COLORS.primary} />
                   </View>
 
                   <View style={s.billDetails}>
@@ -333,7 +354,7 @@ export default function BillRemindersScreen({ navigation }) {
                       {b.autoPay && <View style={s.autoPayTag}><Text style={s.autoPayText}>AUTO</Text></View>}
                     </View>
                     <Text style={s.billDateText}>
-                      Due day {b.dueDate} • {b.frequency}
+                      Due: {formattedDueDate} • {b.frequency}
                       {b.paymentMethod ? ` • ${b.paymentMethod}` : ''}
                     </Text>
                     {!isPaid && daysUntilDue !== null && (
@@ -941,7 +962,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyAddBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -1033,7 +1054,7 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   submitBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',

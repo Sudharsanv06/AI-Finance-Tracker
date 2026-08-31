@@ -351,7 +351,7 @@ export default function AddTransactionScreen({ navigation, route }) {
           )}
 
           <View style={s.tabContainer}>
-            {['Income', 'Expense', 'Transfer'].map((t) => (
+            {['Expense', 'Transfer'].map((t) => (
               <TouchableOpacity
                 key={t}
                 onPress={() => setTxType(t)}
@@ -880,13 +880,13 @@ const s = StyleSheet.create({
   },
 
   submitBtn: {
-    backgroundColor: '#0058be',
+    backgroundColor: COLORS.primary,
     borderRadius: 18,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 5,
-    shadowColor: '#0058be',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

@@ -305,10 +305,10 @@ function EventCard({ event, onEdit, onDelete }) {
   const barColor =
     pct >= 90 ? '#ba1a1a'   :
     pct >= 70 ? '#825100' :
-    '#0058be';
+    COLORS.teal;
 
   const statusColors = {
-    active:    { bg: 'rgba(0, 88, 190, 0.08)',  text: '#0058be'  },
+    active:    { bg: 'rgba(0, 70, 67, 0.08)',  text: COLORS.teal  },
     upcoming:  { bg: 'rgba(130, 81, 0, 0.08)',  text: '#825100'  },
     completed: { bg: 'rgba(0, 108, 73, 0.08)',  text: '#006c49'  },
     draft:     { bg: 'rgba(114, 119, 133, 0.08)', text: '#727785' },
@@ -657,7 +657,7 @@ const s = StyleSheet.create({
   progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   progressLabel: { fontSize: 13, color: COLORS.onSurfaceVariant },
   progressPct:   { fontSize: 13, fontWeight: '700' },
-  progressBar:   { height: 8, backgroundColor: '#eff4ff', borderRadius: 4, overflow: 'hidden' },
+  progressBar:   { height: 8, backgroundColor: COLORS.teal50, borderRadius: 4, overflow: 'hidden' },
   progressFill:  { height: '100%', borderRadius: 4 },
   statsRow: { flexDirection: 'row', gap: 8 },
   stat:     { flex: 1, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 8, padding: 8, alignItems: 'center' },

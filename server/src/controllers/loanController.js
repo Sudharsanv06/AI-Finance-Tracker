@@ -142,14 +142,17 @@ export const createLoan = async (req, res, next) => {
     endDate.setMonth(endDate.getMonth() + (tenureMonths || 12));
 
     const loan = await Loan.create({
-      title, type, loanFrom, loanTo, category,
+      title, type,
+      loanFrom: loanFrom || '',
+      loanTo: loanTo || '',
+      category: category || 'Other',
       principal,
       interestRate:  interestRate  || 0,
       tenureMonths:  tenureMonths  || 12,
       emiAmount:     emi,
       startDate:     start,
       endDate,
-      notes,
+      notes: notes || '',
       userId: req.user._id,
       status:        'active',
       totalPaid:     0,
@@ -220,8 +223,8 @@ export const addPayment = async (req, res, next) => {
       });
     }
 
-    // Add payment
-    loan.payments.push({ amount, date: date || Date.now(), note });
+    // Add payment (sanitize note to string so Firestore/MongoDB documents never have undefined fields)
+    loan.payments.push({ amount, date: date || Date.now(), note: note || '' });
     loan.totalPaid += amount;
 
     // Check if fully paid

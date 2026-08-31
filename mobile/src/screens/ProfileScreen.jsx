@@ -91,7 +91,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={s.avatarText}>{getInitials(user?.name)}</Text>
           )}
           <View style={s.cameraBadge}>
-            <Ionicons name="camera" size={13} color="#0058be" />
+            <Ionicons name="camera" size={13} color={COLORS.primary} />
           </View>
         </TouchableOpacity>
         <Text style={s.name}>{user?.name}</Text>

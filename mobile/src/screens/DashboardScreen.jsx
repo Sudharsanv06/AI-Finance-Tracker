@@ -338,18 +338,18 @@ export default function DashboardScreen({ navigation }) {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator size="large" color="#0058be" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
-    <>
+    <SafeAreaView style={s.container}>
       <ScrollView
-        style={s.container}
         contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0058be" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
         }
       >
         {/* Header Section (Hi, Garcia!) */}
@@ -546,20 +546,24 @@ export default function DashboardScreen({ navigation }) {
               <Text style={s.emptyText}>No unpaid bills due soon</Text>
             </View>
           ) : (
-            upcomingBills.map((bill) => (
-              <View key={bill._id} style={s.billRow}>
-                <View style={s.billIconWrapper}>
-                  <Ionicons name={BILL_ICONS[bill.category] || 'document-text'} size={20} color={COLORS.primary} />
+            upcomingBills.map((bill) => {
+              const dueMonthIdx = (bill.frequency === 'yearly' && bill.dueMonth) ? bill.dueMonth - 1 : now.getMonth();
+              const formattedDueDate = new Date(now.getFullYear(), dueMonthIdx, bill.dueDate || 1).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+              return (
+                <View key={bill._id} style={s.billRow}>
+                  <View style={s.billIconWrapper}>
+                    <Ionicons name={BILL_ICONS[bill.category] || 'document-text'} size={20} color={COLORS.primary} />
+                  </View>
+                  <View style={s.billInfo}>
+                    <Text style={s.billName}>{bill.title}</Text>
+                    <Text style={s.billDue}>
+                      Due {formattedDueDate} • {bill.daysUntilDue <= 0 ? 'Due today' : `${bill.daysUntilDue} days left`}
+                    </Text>
+                  </View>
+                  <Text style={s.billAmount}>{formatCurrency(bill.amount)}</Text>
                 </View>
-                <View style={s.billInfo}>
-                  <Text style={s.billName}>{bill.title}</Text>
-                  <Text style={s.billDue}>
-                    Due {bill.dueDate} • {bill.daysUntilDue} days left
-                  </Text>
-                </View>
-                <Text style={s.billAmount}>{formatCurrency(bill.amount)}</Text>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
 
@@ -578,8 +582,8 @@ export default function DashboardScreen({ navigation }) {
           ) : (
             expenses.slice(0, 4).map((exp) => (
               <TouchableOpacity key={exp._id} style={s.expenseItem} onPress={() => handleEditExpense(exp)}>
-                <View style={[s.billIconWrapper, { backgroundColor: 'rgba(0, 88, 190, 0.05)' }]}>
-                  <Ionicons name="cash-outline" size={18} color="#0058be" />
+                <View style={[s.billIconWrapper, { backgroundColor: COLORS.surfaceContainerLow }]}>
+                  <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
                 </View>
                 <View style={s.billInfo}>
                   <Text style={s.billName} numberOfLines={1}>{exp.description}</Text>
@@ -785,7 +789,7 @@ export default function DashboardScreen({ navigation }) {
               
               <TouchableOpacity
                 style={{
-                  backgroundColor: '#0058be',
+                  backgroundColor: COLORS.primary,
                   borderRadius: 12,
                   paddingVertical: 12,
                   alignItems: 'center',
@@ -972,11 +976,11 @@ const s = StyleSheet.create({
 
   // Balance Card
   balanceCard: {
-    backgroundColor: '#0c2240', // dark premium navy blue background
+    backgroundColor: COLORS.primary, // Deep Teal theme background
     borderRadius: 24,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#0c2240',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -1091,7 +1095,7 @@ const s = StyleSheet.create({
   },
   viewAllLink: {
     fontSize: 12,
-    color: '#0058be',
+    color: COLORS.primary,
     fontWeight: '700',
   },
 
@@ -1105,7 +1109,7 @@ const s = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#6366f1', // Indigo budget bar color
+    backgroundColor: COLORS.tealLight, // Deep teal bar color
     borderRadius: 4,
   },
   budgetStatsRow: {
@@ -1121,7 +1125,7 @@ const s = StyleSheet.create({
   budgetPercentText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6366f1',
+    color: COLORS.tealLight,
   },
 
   // setup budget button
@@ -1135,7 +1139,7 @@ const s = StyleSheet.create({
   setupLinkText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0058be',
+    color: COLORS.primary,
   },
 
   // Bill Row
