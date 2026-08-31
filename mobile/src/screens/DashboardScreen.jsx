@@ -896,7 +896,7 @@ export default function DashboardScreen({ navigation }) {
       />
 
       <ChatBot />
-    </>
+    </SafeAreaView>
   );
 }
 
