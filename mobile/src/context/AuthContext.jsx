@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authService from '../services/authService';
 
@@ -15,11 +16,23 @@ export function AuthProvider({ children }) {
         const savedToken = await AsyncStorage.getItem('token');
         const savedUser  = await AsyncStorage.getItem('user');
         if (savedToken && savedUser) {
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            if (parsedUser && typeof parsedUser === 'object' && parsedUser._id) {
+              setToken(savedToken);
+              setUser(parsedUser);
+            } else {
+              await AsyncStorage.multiRemove(['token', 'user']);
+            }
+          } catch (e) {
+            await AsyncStorage.multiRemove(['token', 'user']);
+          }
         }
-      } catch {}
-      finally { setLoading(false); }
+      } catch (err) {
+        console.log('Error loading auth context:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -76,9 +89,11 @@ export function AuthProvider({ children }) {
       if (typeof updatedUserOrFunc === 'function') {
         setUser((prevUser) => {
           const nextUser = updatedUserOrFunc(prevUser);
-          AsyncStorage.setItem('user', JSON.stringify(nextUser)).catch((err) => {
-            console.log('AsyncStorage user set error:', err);
-          });
+          if (nextUser) {
+            AsyncStorage.setItem('user', JSON.stringify(nextUser)).catch((err) => {
+              console.log('AsyncStorage user set error:', err);
+            });
+          }
           return nextUser;
         });
       } else {
@@ -90,13 +105,21 @@ export function AuthProvider({ children }) {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F0EDE5', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#004643" />
+      </View>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{
       user, token, loading,
-      isAuthenticated: !!token,
+      isAuthenticated: Boolean(token && user && user._id),
       login, register, logout, updateUser,
     }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

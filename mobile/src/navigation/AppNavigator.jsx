@@ -32,6 +32,8 @@ const TAB_ICONS = {
   More:        { active: 'person',         inactive: 'person-outline' },
 };
 
+const DummyAddScreen = () => null;
+
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -68,7 +70,7 @@ function MainTabs() {
       <Tab.Screen name="Transaction" component={ExpensesScreen}  />
       <Tab.Screen
         name="Add"
-        component={View}
+        component={DummyAddScreen}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
